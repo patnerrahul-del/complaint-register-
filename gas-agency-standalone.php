@@ -1772,6 +1772,26 @@ if ($action) {
             }
             break;
 
+        case 'get_consumer_details':
+            $id = (int)($_GET['id'] ?? 0);
+            $stmt = $db->prepare("SELECT * FROM gas_consumers WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            $consumer = $stmt->fetch();
+            if (!$consumer) {
+                echo json_encode(['success' => false, 'error' => 'Consumer record not found']);
+                break;
+            }
+            $history = [];
+            $mob = trim($consumer['mobile'] ?? '');
+            $cNum = trim($consumer['consumer_number'] ?? '');
+            if ($mob !== '' || $cNum !== '') {
+                $hStmt = $db->prepare("SELECT id, consumer_number, consumer_name, mobile, complaint, status, created_at, vendor_id, delivered_at FROM gas_complaints WHERE deleted = 0 AND ((mobile = :mob AND :mob != '') OR (consumer_number = :cNum AND :cNum != '')) ORDER BY id DESC LIMIT 10");
+                $hStmt->execute(['mob' => $mob, 'cNum' => $cNum]);
+                $history = $hStmt->fetchAll();
+            }
+            echo json_encode(['success' => true, 'consumer' => $consumer, 'history' => $history]);
+            break;
+
         case 'delete_consumer':
             if (!hasPermission('complaints_delete')) {
                 echo json_encode(['success' => false, 'error' => 'Permission denied']); exit();
@@ -5449,6 +5469,34 @@ $logoUrl = ($companyInfo['company_logo'] && $companyInfo['company_logo'] !== 'de
     </div>
   </div>
 
+  <!-- Modal: Consumer Profile & Details -->
+  <div class="modal-overlay" id="consumerDetailsModal">
+    <div class="modal" style="max-width: 680px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 16px 20px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 38px; height: 38px; background: rgba(249, 115, 22, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color:#f97316;">👤</div>
+          <div>
+            <div class="modal-title" id="consumerDetailTitle" style="font-size: 1.1rem; font-weight: 700; color: #ffffff;">Consumer Details</div>
+            <div style="font-size: 0.78rem; color: #94a3b8;" id="consumerDetailSub">Complete consumer profile overview</div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('consumerDetailsModal')" style="color: #fff; opacity: 0.8; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;" id="consumerDetailsContent">
+        <div style="text-align:center; padding: 2rem; color: #64748b;">
+          <i class="fas fa-spinner fa-spin" style="font-size:1.5rem; margin-bottom:8px;"></i>
+          <div>Loading consumer profile...</div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div id="consumerDetailFooterActions"></div>
+        <button class="btn btn-outline" onclick="closeModal('consumerDetailsModal')" style="min-width: 90px;">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal 7: Branch Form (Add/Edit) -->
   <div class="modal-overlay" id="branchModal">
     <div class="modal" style="max-width: 440px;">
@@ -8785,14 +8833,14 @@ $logoUrl = ($companyInfo['company_logo'] && $companyInfo['company_logo'] !== 'de
         uploadCard.style.display = isAdmin ? 'block' : 'none';
       }
 
-      // Hide/Show Action Column Header
+      // Action Column Header is always visible now for View button
       const actionHeaders = document.querySelectorAll('#view-consumers table thead th:last-child');
       actionHeaders.forEach(el => {
-        el.style.display = isAdmin ? 'table-cell' : 'none';
+        el.style.display = 'table-cell';
       });
 
       if (!res.rows || res.rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${isAdmin ? 10 : 9}" style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="fas fa-users" style="font-size:2rem;margin-bottom:1rem;display:block;"></i>No consumers imported yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="fas fa-users" style="font-size:2rem;margin-bottom:1rem;display:block;"></i>No consumers imported yet.</td></tr>`;
         const pgInfo = document.getElementById('consumerPgInfo');
         if (pgInfo) pgInfo.innerText = '0 of 0';
         const pgControls = document.getElementById('consumerPgControls');
@@ -8800,9 +8848,11 @@ $logoUrl = ($companyInfo['company_logo'] && $companyInfo['company_logo'] !== 'de
         return;
       }
 
+      const pageNum = parseInt(res.page, 10) || 1;
+
       res.rows.forEach((r, i) => {
         const tr = document.createElement('tr');
-        const index = (res.page - 1) * 100 + i + 1;
+        const index = (pageNum - 1) * 100 + i + 1;
         
         // Format connection badge
         let connBadge = '<span class="badge badge-secondary" style="background:#f1f5f9;color:#475569;">SBC</span>';
@@ -8832,16 +8882,18 @@ $logoUrl = ($companyInfo['company_logo'] && $companyInfo['company_logo'] !== 'de
           kycBadge = `<span class="badge" style="background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;">${escapeHtml(r.ekyc_status)}</span>`;
         }
 
-        let actionTd = '';
-        if (isAdmin) {
-          actionTd = `
-            <td style="text-align:center;">
-              <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:none;padding:4px 8px;font-weight:700;" onclick="deleteConsumer(${r.id})">
-                <i class="fas fa-trash"></i> Remove
-              </button>
-            </td>
-          `;
-        }
+        let actionTd = `
+          <td style="text-align:center; white-space:nowrap;">
+            <button class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 10px; font-weight:700; border-radius:6px; cursor:pointer; margin-right:4px;" onclick="viewConsumerDetails(${r.id})" title="View Consumer Details">
+              <i class="fas fa-eye"></i> View
+            </button>
+            ${isAdmin ? `
+            <button class="btn btn-sm" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:4px 10px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="deleteConsumer(${r.id})" title="Remove Consumer">
+              <i class="fas fa-trash"></i> Remove
+            </button>
+            ` : ''}
+          </td>
+        `;
 
         tr.innerHTML = `
           <td style="font-weight:700;color:var(--text-muted);">${index}</td>
@@ -8861,21 +8913,195 @@ $logoUrl = ($companyInfo['company_logo'] && $companyInfo['company_logo'] !== 'de
       // Pagination
       const totalPages = Math.ceil(res.total / 100);
       const pgInfo = document.getElementById('consumerPgInfo');
-      if (pgInfo) pgInfo.innerText = `Showing ${(res.page-1)*100+1} - ${Math.min(res.page*100, res.total)} of ${res.total}`;
+      if (pgInfo) pgInfo.innerText = `Showing ${(pageNum-1)*100+1} - ${Math.min(pageNum*100, res.total)} of ${res.total}`;
       
       const pc = document.getElementById('consumerPgControls');
       if (pc) {
         pc.innerHTML = '';
         if (totalPages > 1) {
-          if (res.page > 1) {
-            pc.innerHTML += `<button class="btn btn-outline btn-sm" onclick="loadConsumers(${res.page - 1})"><i class="fas fa-chevron-left"></i></button>`;
+          if (pageNum > 1) {
+            pc.innerHTML += `<button class="btn btn-outline btn-sm" onclick="loadConsumers(${pageNum - 1})"><i class="fas fa-chevron-left"></i></button>`;
           }
-          pc.innerHTML += `<span style="font-size:0.8rem;margin:0 10px;align-self:center;">${res.page}/${totalPages}</span>`;
-          if (res.page < totalPages) {
-            pc.innerHTML += `<button class="btn btn-outline btn-sm" onclick="loadConsumers(${res.page + 1})"><i class="fas fa-chevron-right"></i></button>`;
+          pc.innerHTML += `<span style="font-size:0.8rem;margin:0 10px;align-self:center;">${pageNum}/${totalPages}</span>`;
+          if (pageNum < totalPages) {
+            pc.innerHTML += `<button class="btn btn-outline btn-sm" onclick="loadConsumers(${pageNum + 1})"><i class="fas fa-chevron-right"></i></button>`;
           }
         }
       }
+    }
+
+    function viewConsumerDetails(id) {
+      openModal('consumerDetailsModal');
+      const content = document.getElementById('consumerDetailsContent');
+      const title = document.getElementById('consumerDetailTitle');
+      const sub = document.getElementById('consumerDetailSub');
+      const footerActions = document.getElementById('consumerDetailFooterActions');
+
+      content.innerHTML = `
+        <div style="text-align:center; padding: 2.5rem; color: #64748b;">
+          <i class="fas fa-spinner fa-spin" style="font-size:1.8rem; color:var(--primary); margin-bottom:10px;"></i>
+          <div style="font-weight:600;">Fetching consumer profile details...</div>
+        </div>
+      `;
+      if (footerActions) footerActions.innerHTML = '';
+
+      fetch(`?action=get_consumer_details&id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success || !data.consumer) {
+            content.innerHTML = `<div style="padding:2rem; text-align:center; color:#dc2626;">Failed to load consumer profile: ${escapeHtml(data.error || 'Unknown error')}</div>`;
+            return;
+          }
+
+          const c = data.consumer;
+          const history = data.history || [];
+
+          title.innerText = c.consumer_name || 'Consumer Profile';
+          sub.innerText = `Account No: ${c.consumer_number || 'N/A'}`;
+
+          // Format Connection
+          let connBadge = '<span class="badge" style="background:#f1f5f9;color:#475569;font-weight:700;">SBC</span>';
+          if (c.connection_type && c.connection_type.toUpperCase().includes('DBC')) {
+            connBadge = '<span class="badge" style="background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;font-weight:700;padding:4px 10px;">DBC Connection</span>';
+          } else if (c.connection_type && c.connection_type.toUpperCase().includes('SBC')) {
+            connBadge = '<span class="badge" style="background:#ecfeff;color:#0891b2;border:1px solid #cffafe;font-weight:700;padding:4px 10px;">SBC Connection</span>';
+          }
+
+          // Format Status
+          let statusBadge = '<span class="badge" style="background:#f0fdf4;color:#16a34a;border:1px solid #dcfce7;font-weight:700;padding:4px 10px;">Active</span>';
+          if (c.status && !c.status.toUpperCase().includes('ACTIVE')) {
+            statusBadge = `<span class="badge" style="background:#fef2f2;color:#dc2626;border:1px solid #fee2e2;font-weight:700;padding:4px 10px;">${escapeHtml(c.status)}</span>`;
+          }
+
+          // Format E-KYC
+          let kycBadge = '<span class="badge" style="background:#fffbeb;color:#d97706;border:1px solid #fef3c7;font-weight:700;padding:4px 10px;">Pending E-KYC</span>';
+          if (c.ekyc_status && (c.ekyc_status.toUpperCase() === 'Y' || c.ekyc_status.toUpperCase() === 'YES' || c.ekyc_status.toUpperCase() === 'COMPLETED' || c.ekyc_status.toUpperCase() === 'COMPLETE')) {
+            kycBadge = '<span class="badge" style="background:#f0fdf4;color:#16a34a;border:1px solid #dcfce7;font-weight:700;padding:4px 10px;">E-KYC Completed</span>';
+          }
+
+          // Phone / WhatsApp links
+          const cleanPhone = (c.mobile || '').replace(/[^0-9]/g, '');
+          const telLink = cleanPhone ? `tel:${cleanPhone}` : '#';
+          const waLink = cleanPhone ? `https://wa.me/91${cleanPhone.slice(-10)}` : '#';
+
+          // History Rows
+          let historyHtml = '';
+          if (history.length > 0) {
+            historyHtml = history.map(h => `
+              <tr style="border-bottom:1px solid #f1f5f9; font-size:0.82rem;">
+                <td style="padding:8px; font-weight:700; color:var(--primary);">#${h.id}</td>
+                <td style="padding:8px; color:#64748b;">${escapeHtml(h.created_at || '')}</td>
+                <td style="padding:8px; font-weight:600; color:#1e293b;">${escapeHtml(h.complaint || '')}</td>
+                <td style="padding:8px; text-align:center;">
+                  <span class="badge" style="font-size:0.75rem; font-weight:700; background:${h.status === 'Delivered' ? '#f0fdf4' : '#fff7ed'}; color:${h.status === 'Delivered' ? '#16a34a' : '#c2410c'};">${escapeHtml(h.status || 'Pending')}</span>
+                </td>
+                <td style="padding:8px; text-align:center;">
+                  <button class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:0.75rem;" onclick="closeModal('consumerDetailsModal'); viewComplaintDetails(${h.id});">
+                    <i class="fas fa-external-link-alt"></i> View
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          } else {
+            historyHtml = `<tr><td colspan="5" style="text-align:center; padding:1.2rem; color:#94a3b8; font-size:0.82rem;">No previous complaint records found for this consumer.</td></tr>`;
+          }
+
+          content.innerHTML = `
+            <!-- Top Hero Card -->
+            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <h3 style="margin:0 0 6px 0; font-size:1.2rem; color:#0f172a; font-weight:800;">${escapeHtml(c.consumer_name)}</h3>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                    <span style="background:#e2e8f0; color:#334155; padding:3px 10px; border-radius:12px; font-size:0.78rem; font-weight:700;">Account: ${escapeHtml(c.consumer_number || 'N/A')}</span>
+                    ${connBadge}
+                    ${statusBadge}
+                    ${kycBadge}
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  ${cleanPhone ? `
+                    <a href="${telLink}" class="btn btn-sm" style="background:#22c55e; color:white; font-weight:700; text-decoration:none; padding:6px 12px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;">
+                      <i class="fas fa-phone-alt"></i> Call
+                    </a>
+                    <a href="${waLink}" target="_blank" class="btn btn-sm" style="background:#25d366; color:white; font-weight:700; text-decoration:none; padding:6px 12px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;">
+                      <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                  ` : ''}
+                </div>
+              </div>
+
+              <!-- Attributes Grid -->
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-top:14px; padding-top:14px; border-top:1px dashed #cbd5e1;">
+                <div>
+                  <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">Mobile Number</div>
+                  <div style="font-size:0.92rem; font-weight:800; color:#0f172a; margin-top:2px;">${escapeHtml(c.mobile || 'N/A')}</div>
+                </div>
+                <div>
+                  <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">Locality / Area</div>
+                  <div style="font-size:0.92rem; font-weight:800; color:#c2410c; margin-top:2px;">${escapeHtml(c.area || 'N/A')}</div>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">Full Delivery Address</div>
+                  <div style="font-size:0.88rem; font-weight:600; color:#334155; margin-top:2px; background:#ffffff; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <i class="fas fa-map-marker-alt" style="color:#ef4444; margin-right:6px;"></i> ${escapeHtml(c.address || 'No address specified')}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Complaint History Section -->
+            <div style="margin-top:20px;">
+              <div style="font-weight:700; font-size:0.95rem; color:#1e293b; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                <span><i class="fas fa-history" style="color:var(--primary); margin-right:6px;"></i> Recent Complaints History</span>
+                <span style="font-size:0.78rem; color:#64748b; font-weight:600;">Total ${history.length} records</span>
+              </div>
+              <div style="border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+                <table style="width:100%; border-collapse:collapse; background:#ffffff;">
+                  <thead>
+                    <tr style="background:#f8fafc; font-size:0.75rem; text-transform:uppercase; color:#64748b; border-bottom:1px solid #e2e8f0;">
+                      <th style="padding:8px; text-align:left;">ID</th>
+                      <th style="padding:8px; text-align:left;">Date</th>
+                      <th style="padding:8px; text-align:left;">Complaint</th>
+                      <th style="padding:8px; text-align:center;">Status</th>
+                      <th style="padding:8px; text-align:center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${historyHtml}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+
+          if (footerActions) {
+            const safeNo = (c.consumer_number || '').replace(/'/g, "\\'");
+            const safeName = (c.consumer_name || '').replace(/'/g, "\\'");
+            const safeMob = (c.mobile || '').replace(/'/g, "\\'");
+            const safeAddr = (c.address || '').replace(/'/g, "\\'");
+
+            footerActions.innerHTML = `
+              <button class="btn btn-primary btn-sm" onclick="closeModal('consumerDetailsModal'); openNewComplaintForConsumer('${safeNo}', '${safeName}', '${safeMob}', '${safeAddr}');">
+                <i class="fas fa-plus"></i> New Complaint for Consumer
+              </button>
+            `;
+          }
+        })
+        .catch(err => {
+          content.innerHTML = `<div style="padding:2rem; text-align:center; color:#dc2626;">Error fetching details: ${escapeHtml(err.message)}</div>`;
+        });
+    }
+
+    function openNewComplaintForConsumer(cNo, cName, cMob, cAddr) {
+      document.getElementById('c_id').value = '';
+      document.getElementById('c_no').value = cNo;
+      document.getElementById('c_name').value = cName;
+      document.getElementById('c_mob').value = cMob;
+      document.getElementById('c_addr').value = cAddr;
+      document.getElementById('c_comp').value = '';
+      document.getElementById('complaintModalTitle').innerText = `New Complaint for ${cName}`;
+      openModal('complaintModal');
     }
 
     function deleteConsumer(id) {
