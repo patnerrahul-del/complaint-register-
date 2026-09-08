@@ -1785,7 +1785,7 @@ if ($action) {
             $mob = trim($consumer['mobile'] ?? '');
             $cNum = trim($consumer['consumer_number'] ?? '');
             if ($mob !== '' || $cNum !== '') {
-                $hStmt = $db->prepare("SELECT id, consumer_number, consumer_name, mobile, complaint, status, created_at, vendor_id, delivered_at FROM gas_complaints WHERE deleted = 0 AND ((mobile = :mob AND :mob != '') OR (consumer_number = :cNum AND :cNum != '')) ORDER BY id DESC LIMIT 10");
+                $hStmt = $db->prepare("SELECT id, consumer_number, consumer_name, mobile, complaint, status, created_at, vendor_id, resolved_at FROM gas_complaints WHERE deleted = 0 AND ((mobile = :mob AND :mob != '') OR (consumer_number = :cNum AND :cNum != '')) ORDER BY id DESC LIMIT 10");
                 $hStmt->execute(['mob' => $mob, 'cNum' => $cNum]);
                 $history = $hStmt->fetchAll();
             }
