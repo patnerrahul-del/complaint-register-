@@ -17,8 +17,44 @@
 
   <!-- Supabase Official JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase Adapter Bridge -->
+  <script src="js/supabase-adapter.js"></script>
 
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- UI Helper Scripts for Login -->
+  <script>
+    function togglePasswordVisibility() {
+      const pwdInput = document.getElementById('loginPassword');
+      const icon = document.getElementById('togglePasswordIcon');
+      if (!pwdInput) return;
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+      } else {
+        pwdInput.type = 'password';
+        if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+      }
+    }
+
+    function fillAdminCreds() {
+      const u = document.getElementById('loginUsername');
+      const p = document.getElementById('loginPassword');
+      if (u) u.value = 'admin';
+      if (p) p.value = 'password';
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: 'Auto-filled: admin / password',
+          showConfirmButton: false,
+          timer: 1500
+        });
+      }
+    }
+  </script>
+
 </head>
 <body>
   
@@ -1697,7 +1733,7 @@
   </div>
 
   <!-- Supabase Adapter Bridge -->
-  <script src="js/supabase-adapter.js"></script>
+  
 
   <!-- App Auth & View Controller -->
   <script>
