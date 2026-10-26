@@ -105,33 +105,56 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'get_init_data': {
-      const [settingsRes, branchesRes, vendorsRes] = await Promise.all([
+      const [settingsRes, branchesRes, vendorsRes, complaintsRes] = await Promise.all([
         supabase.from('gas_settings').select('*'),
         supabase.from('gas_branches').select('*').order('id', { ascending: true }),
-        supabase.from('gas_vendors').select('*').order('name', { ascending: true })
+        supabase.from('gas_vendors').select('*').order('name', { ascending: true }),
+        supabase.from('gas_complaints').select('*').eq('deleted', 0).order('created_at', { ascending: false }).limit(100)
       ]);
 
-      const settings = {};
-      (settingsRes.data || []).forEach(r => { settings[r.setting_key] = r.setting_value; });
+      const config = {};
+      (settingsRes.data || []).forEach(r => { config[r.setting_key] = r.setting_value; });
 
       const company = {
-        company_name: settings['CompanyName'] || 'Shiv Shakti Hp Gas Agency',
-        company_address: settings['CompanyAddress'] || '',
-        company_mobile: settings['CompanyMobile'] || '',
-        company_email: settings['CompanyEmail'] || '',
-        company_logo: settings['CompanyLogo'] || ''
+        company_name: config['CompanyName'] || 'Shiv Shakti Hp Gas Agency',
+        company_address: config['CompanyAddress'] || 'PANDAUL BAZAR, MADHUBANI-847234',
+        company_mobile: config['CompanyMobile'] || '9771459303',
+        company_email: config['CompanyEmail'] || 'shivshakti.madhubani@hpgas.hpcl.co.in',
+        company_logo: config['CompanyLogo'] || ''
       };
 
-      const sources = (settings['ComplaintSources'] || 'Office Phone,Delivery,Leakage,District Office,MO').split(',');
+      const sources = (config['ComplaintSources'] || 'Office Phone,Delivery,Leakage,District Office,MO').split(',').map(s => s.trim()).filter(Boolean);
+
+      const allComps = complaintsRes.data || [];
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const stats = {
+        total: allComps.length,
+        pending: allComps.filter(c => c.status === 'Pending').length,
+        inProgress: allComps.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length,
+        delivered: allComps.filter(c => c.status === 'Delivered' || c.status === 'Resolved').length,
+        todayNew: allComps.filter(c => (c.created_at || '').startsWith(todayStr)).length
+      };
+
+      const defaultUser = currentUser || {
+        id: 1,
+        username: 'admin',
+        name: 'Administrator',
+        role: 'Admin',
+        permissions: '*'
+      };
 
       return {
         success: true,
-        user: currentUser,
-        company,
-        branches: branchesRes.data || [],
+        config: config,
+        settings: config,
+        sources: sources,
         vendors: vendorsRes.data || [],
-        sources,
-        settings
+        branches: branchesRes.data || [],
+        active_branch_id: 1,
+        stats: stats,
+        complaints: allComps,
+        user: defaultUser,
+        company: company
       };
     }
 

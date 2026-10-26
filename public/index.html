@@ -1933,7 +1933,7 @@
         .then(res => {
           showLoading(false);
           if (res.success) {
-            State.config = res.config;
+            State.config = res.config || {};
             State.sources = res.sources;
             State.vendors = res.vendors;
             State.branches = res.branches || [];
@@ -4942,7 +4942,7 @@
       const badge = document.getElementById('consumerTotalBadge');
       if (badge) badge.innerText = `${res.total} Consumers`;
 
-      const isAdmin = State.user.role === 'Admin';
+      const isAdmin = State.user && State.user.role === 'Admin';
       
       // Hide upload card for non-admins
       const uploadCard = document.getElementById('consumerUploadCard');
@@ -5706,7 +5706,7 @@
     }
 
     function setupBranchSelectors() {
-      const isMulti = State.config.MultiBranchEnabled === '1';
+      const isMulti = State.config && State.config.MultiBranchEnabled === '1';
       const isAdmin = State.user.role === 'Admin';
       
       const headerSel = document.getElementById('headerBranchSelector');
