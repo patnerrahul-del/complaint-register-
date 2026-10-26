@@ -22,40 +22,118 @@
 </head>
 <body>
   
-  <!-- Login Screen -->
-  <div id="loginView" class="login-wrapper" style="display: none;">
-    <div class="login-card">
-      <div class="brand">
-        <div class="brand-icon"><i class="fas fa-fire-flame-curved"></i></div>
-        <div class="brand-title company-name-slot">Shiv Shakti Hp Gas Agency</div>
+  
+  <!-- ULTRA PREMIUM FULL PAGE LOGIN -->
+  <div id="loginView" class="premium-login-container">
+    <div class="login-bg-glow glow-1"></div>
+    <div class="login-bg-glow glow-2"></div>
+    <div class="login-bg-glow glow-3"></div>
+
+    <div class="login-split-card">
+      <!-- Left Side: Hero / Brand Showcase -->
+      <div class="login-hero-pane">
+        <div class="hero-brand-badge">
+          <i class="fas fa-certificate" style="color: #fbbf24;"></i>
+          <span>Authorized HP Gas Portal</span>
+        </div>
+
+        <div class="hero-brand-header">
+          <div class="hero-logo-box">
+            <i class="fas fa-fire-flame-curved"></i>
+          </div>
+          <h1 class="hero-title">Shiv Shakti<br><span class="hero-title-accent">HP Gas Agency</span></h1>
+        </div>
+        
+        <p class="hero-subtitle">
+          Next-generation cloud CRM portal for consumer registry, delivery vendor assignments, and complaint resolution.
+        </p>
+
+        <div class="hero-stats-grid">
+          <div class="hero-stat-card">
+            <div class="stat-icon-wrapper blue">
+              <i class="fas fa-users"></i>
+            </div>
+            <div>
+              <div class="stat-number">23,650+</div>
+              <div class="stat-label">Active Consumers</div>
+            </div>
+          </div>
+
+          <div class="hero-stat-card">
+            <div class="stat-icon-wrapper green">
+              <i class="fas fa-shield-halved"></i>
+            </div>
+            <div>
+              <div class="stat-number">Cloud Powered</div>
+              <div class="stat-label">Supabase Real-Time</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-footer-features">
+          <div class="hero-feature-pill"><i class="fas fa-print"></i> Thermal Receipt Printing</div>
+          <div class="hero-feature-pill"><i class="fas fa-truck-fast"></i> Live Vendor Tracking</div>
+        </div>
       </div>
-      <h2>Welcome Back</h2>
-      <p class="subtitle" style="font-size:0.85rem; color:#64748b; margin-bottom:24px; text-align:center;">Enter your credentials to access the portal</p>
-      
-      <form id="loginForm" onsubmit="handleLoginSubmit(event)">
-        <div class="form-group" style="margin-bottom:16px;">
-          <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:6px;">Username</label>
-          <div class="input-wrapper" style="position:relative;">
-            <i class="fas fa-user" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
-            <input type="text" id="loginUsername" required placeholder="admin" value="admin" style="width:100%; border:2px solid #e2e8f0; border-radius:10px; padding:12px 14px 12px 42px; font-weight:600; outline:none;">
+
+      <!-- Right Side: Login Form -->
+      <div class="login-form-pane">
+        <div class="form-header">
+          <div class="mobile-brand-tag">
+            <i class="fas fa-fire-flame-curved"></i> Shiv Shakti HP Gas
           </div>
+          <h2>Portal Sign In</h2>
+          <p class="form-subtext">Enter your employee or administrator credentials</p>
         </div>
 
-        <div class="form-group" style="margin-bottom:24px;">
-          <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:6px;">Password</label>
-          <div class="input-wrapper" style="position:relative;">
-            <i class="fas fa-lock" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
-            <input type="password" id="loginPassword" required placeholder="Enter password" value="password" style="width:100%; border:2px solid #e2e8f0; border-radius:10px; padding:12px 14px 12px 42px; font-weight:600; outline:none;">
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)" autocomplete="off">
+          <div class="floating-input-group">
+            <label for="loginUsername">Username / Employee ID</label>
+            <div class="input-with-icon">
+              <i class="fas fa-user-shield"></i>
+              <input type="text" id="loginUsername" required placeholder="Enter username" value="admin" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="floating-input-group">
+            <div class="label-row">
+              <label for="loginPassword">Password</label>
+              <button type="button" class="btn-text-toggle" onclick="togglePasswordVisibility()">
+                <i class="fas fa-eye" id="togglePasswordIcon"></i> Show
+              </button>
+            </div>
+            <div class="input-with-icon">
+              <i class="fas fa-key"></i>
+              <input type="password" id="loginPassword" required placeholder="Enter password" value="password" autocomplete="current-password">
+            </div>
+          </div>
+
+          <div class="form-options-row">
+            <label class="remember-checkbox">
+              <input type="checkbox" id="rememberMe" checked>
+              <span>Remember login session</span>
+            </label>
+          </div>
+
+          <button type="submit" id="loginSubmitBtn" class="btn-premium-login">
+            <span class="btn-content">
+              <span>Sign In to Dashboard</span>
+              <i class="fas fa-arrow-right"></i>
+            </span>
+          </button>
+        </form>
+
+        <div class="login-card-footer">
+          <div class="quick-credentials-hint" onclick="fillAdminCreds()">
+            <i class="fas fa-bolt" style="color:#f59e0b;"></i> Quick Fill: <strong>admin</strong> / <strong>password</strong>
+          </div>
+          <div class="security-guarantee">
+            <i class="fas fa-lock"></i> 256-Bit SSL Encrypted Cloud Session
           </div>
         </div>
-
-        <button type="submit" id="loginSubmitBtn" style="width:100%; background:#2563eb; color:#fff; border:none; border-radius:10px; padding:14px; font-size:0.95rem; font-weight:700; cursor:pointer;">
-          <i class="fas fa-arrow-right-to-bracket"></i> Sign In to Portal
-        </button>
-      </form>
+      </div>
     </div>
   </div>
-
 
   <!-- Dashboard Container -->
   <div id="dashboardView" style="display: none;">

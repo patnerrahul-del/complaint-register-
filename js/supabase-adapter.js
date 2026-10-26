@@ -1,9 +1,10 @@
 // Supabase Configuration
-const SUPABASE_URL = 'https://twoykokedsfvihnczlhb.supabase.co';
+const SUPABASE_URL = 'https://twoykokedsfvihnczlhb.sbClient.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_04d6tXc2KFfahuYPaL9cZQ_V2vjSueq';
 
 // Initialize Supabase Client
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+window.sbClient = (typeof window.supabase !== 'undefined' && window.sbClient.createClient) ? window.sbClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const sbClient = window.sbClient;
 
 // Helper: SHA-256 hash for passwords
 async function sha256(message) {
@@ -106,10 +107,10 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'get_init_data': {
       const [settingsRes, branchesRes, vendorsRes, complaintsRes] = await Promise.all([
-        supabase.from('gas_settings').select('*'),
-        supabase.from('gas_branches').select('*').order('id', { ascending: true }),
-        supabase.from('gas_vendors').select('*').order('name', { ascending: true }),
-        supabase.from('gas_complaints').select('*').eq('deleted', 0).order('created_at', { ascending: false }).limit(100)
+        sbClient.from('gas_settings').select('*'),
+        sbClient.from('gas_branches').select('*').order('id', { ascending: true }),
+        sbClient.from('gas_vendors').select('*').order('name', { ascending: true }),
+        sbClient.from('gas_complaints').select('*').eq('deleted', 0).order('created_at', { ascending: false }).limit(100)
       ]);
 
       const config = {};
@@ -167,7 +168,7 @@ async function handleSupabaseAction(urlStr, options) {
       const limit = 50;
       const offset = (page - 1) * limit;
 
-      let query = supabase.from('gas_complaints').select('*', { count: 'exact' }).eq('deleted', 0);
+      let query = sbClient.from('gas_complaints').select('*', { count: 'exact' }).eq('deleted', 0);
 
       if (status && status !== 'All') {
         if (status === 'Active') {
@@ -202,7 +203,7 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'get_complaint_details': {
       const id = params.get('id') || postData.id;
-      const { data, error } = await supabase.from('gas_complaints').select('*').eq('id', id).single();
+      const { data, error } = await sbClient.from('gas_complaints').select('*').eq('id', id).single();
       if (error) throw error;
       return { success: true, complaint: data };
     }
@@ -221,7 +222,7 @@ async function handleSupabaseAction(urlStr, options) {
         created_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase.from('gas_complaints').insert([complaintData]).select();
+      const { data, error } = await sbClient.from('gas_complaints').insert([complaintData]).select();
       if (error) throw error;
       return { success: true, message: 'Complaint registered successfully', id: data[0].id };
     }
@@ -239,14 +240,14 @@ async function handleSupabaseAction(urlStr, options) {
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase.from('gas_complaints').update(updateData).eq('id', id);
+      const { error } = await sbClient.from('gas_complaints').update(updateData).eq('id', id);
       if (error) throw error;
       return { success: true, message: 'Complaint updated' };
     }
 
     case 'delete_complaint': {
       const id = params.get('id') || postData.id;
-      const { error } = await supabase.from('gas_complaints').update({
+      const { error } = await sbClient.from('gas_complaints').update({
         deleted: 1,
         deleted_at: new Date().toISOString(),
         deleted_by: currentUser?.name || 'Admin'
@@ -260,7 +261,7 @@ async function handleSupabaseAction(urlStr, options) {
       const vendorId = postData.vendor_id;
       const vendorName = postData.vendor_name || '';
 
-      const { error } = await supabase.from('gas_complaints').update({
+      const { error } = await sbClient.from('gas_complaints').update({
         vendor_id: vendorId || null,
         vendor: vendorName,
         status: 'Assigned',
@@ -274,7 +275,7 @@ async function handleSupabaseAction(urlStr, options) {
       const id = postData.id || params.get('id');
       const signature = postData.signature_url || '';
 
-      const { error } = await supabase.from('gas_complaints').update({
+      const { error } = await sbClient.from('gas_complaints').update({
         status: 'Delivered',
         signature_url: signature,
         resolved_at: new Date().toISOString(),
@@ -286,7 +287,7 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'mark_delivery_failed': {
       const id = postData.id || params.get('id');
-      const { error } = await supabase.from('gas_complaints').update({
+      const { error } = await sbClient.from('gas_complaints').update({
         status: 'Failed',
         fail_reason: postData.reason || '',
         fail_notes: postData.notes || '',
@@ -298,9 +299,9 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'get_analytics': {
       const [allComplaints, vendors, consumersCount] = await Promise.all([
-        supabase.from('gas_complaints').select('status, source, created_at').eq('deleted', 0),
-        supabase.from('gas_vendors').select('id, name'),
-        supabase.from('gas_consumers').select('id', { count: 'exact', head: true })
+        sbClient.from('gas_complaints').select('status, source, created_at').eq('deleted', 0),
+        sbClient.from('gas_vendors').select('id, name'),
+        sbClient.from('gas_consumers').select('id', { count: 'exact', head: true })
       ]);
 
       const list = allComplaints.data || [];
@@ -317,7 +318,7 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'get_vendors': {
-      const { data, error } = await supabase.from('gas_vendors').select('*').order('name', { ascending: true });
+      const { data, error } = await sbClient.from('gas_vendors').select('*').order('name', { ascending: true });
       if (error) throw error;
       return { success: true, vendors: data || [] };
     }
@@ -330,14 +331,14 @@ async function handleSupabaseAction(urlStr, options) {
         notes: postData.notes || '',
         created_at: new Date().toISOString()
       };
-      const { data, error } = await supabase.from('gas_vendors').insert([vendor]).select();
+      const { data, error } = await sbClient.from('gas_vendors').insert([vendor]).select();
       if (error) throw error;
       return { success: true, message: 'Vendor added', vendor: data[0] };
     }
 
     case 'update_vendor': {
       const id = postData.id;
-      const { error } = await supabase.from('gas_vendors').update({
+      const { error } = await sbClient.from('gas_vendors').update({
         name: postData.name,
         mobile: postData.mobile,
         code: postData.code,
@@ -349,7 +350,7 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'delete_vendor': {
       const id = params.get('id') || postData.id;
-      const { error } = await supabase.from('gas_vendors').delete().eq('id', id);
+      const { error } = await sbClient.from('gas_vendors').delete().eq('id', id);
       if (error) throw error;
       return { success: true, message: 'Vendor removed' };
     }
@@ -376,7 +377,7 @@ async function handleSupabaseAction(urlStr, options) {
       const offset = (page - 1) * limit;
       const search = params.get('search') || '';
 
-      let query = supabase.from('gas_consumers').select('*', { count: 'exact' });
+      let query = sbClient.from('gas_consumers').select('*', { count: 'exact' });
       if (search) {
         query = query.or(`consumer_number.ilike.%${search}%,consumer_name.ilike.%${search}%,mobile.ilike.%${search}%`);
       }
@@ -396,7 +397,7 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'get_consumer_details': {
       const id = params.get('id') || postData.id;
-      const { data, error } = await supabase.from('gas_consumers').select('*').eq('id', id).single();
+      const { data, error } = await sbClient.from('gas_consumers').select('*').eq('id', id).single();
       if (error) throw error;
       return { success: true, consumer: data };
     }
@@ -415,7 +416,7 @@ async function handleSupabaseAction(urlStr, options) {
     case 'get_history': {
       const status = params.get('status') || 'Delivered';
       const search = params.get('search') || '';
-      let query = supabase.from('gas_complaints').select('*').eq('deleted', 0);
+      let query = sbClient.from('gas_complaints').select('*').eq('deleted', 0);
       if (status && status !== 'All') {
         query = query.eq('status', status);
       }
@@ -429,7 +430,7 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'get_settings': {
-      const { data, error } = await supabase.from('gas_settings').select('*');
+      const { data, error } = await sbClient.from('gas_settings').select('*');
       if (error) throw error;
       const settings = {};
       (data || []).forEach(r => { settings[r.setting_key] = r.setting_value; });
@@ -446,13 +447,13 @@ async function handleSupabaseAction(urlStr, options) {
       if (postData.company_logo) {
         updates.push({ setting_key: 'CompanyLogo', setting_value: postData.company_logo });
       }
-      const { error } = await supabase.from('gas_settings').upsert(updates);
+      const { error } = await sbClient.from('gas_settings').upsert(updates);
       if (error) throw error;
       return { success: true, message: 'Settings saved successfully' };
     }
 
     case 'get_branches': {
-      const { data, error } = await supabase.from('gas_branches').select('*').order('id', { ascending: true });
+      const { data, error } = await sbClient.from('gas_branches').select('*').order('id', { ascending: true });
       if (error) throw error;
       return { success: true, branches: data || [] };
     }
