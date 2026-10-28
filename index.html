@@ -1731,8 +1731,8 @@
   <script>
     async function handleLoginSubmit(e) {
       e.preventDefault();
-      const u = document.getElementById('loginUsername').value;
-      const p = document.getElementById('loginPassword').value;
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value.trim();
       const btn = document.getElementById('loginSubmitBtn');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
       btn.disabled = true;
@@ -1742,30 +1742,69 @@
       fd.append('username', u);
       fd.append('password', p);
 
-      const res = await fetch('?', { method: 'POST', body: fd }).then(r => r.json());
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In to Portal';
+      try {
+        const res = await fetch('?', { method: 'POST', body: fd }).then(r => r.json());
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In to Portal';
 
-      if (res && res.success) {
-        Swal.fire({ icon: 'success', title: 'Welcome!', text: 'Login successful', timer: 1000, showConfirmButton: false });
-        setTimeout(() => checkAuth(), 500);
-      } else {
-        Swal.fire({ icon: 'error', title: 'Login Failed', text: res?.message || 'Invalid credentials' });
+        if (res && res.success) {
+          State.user = res.user;
+          localStorage.setItem('gas_user', JSON.stringify(res.user));
+          
+          const loginView = document.getElementById('loginView');
+          const dashboardView = document.getElementById('dashboardView');
+          if (loginView) loginView.style.display = 'none';
+          if (dashboardView) dashboardView.style.display = 'block';
+
+          // Update user names on screen
+          document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = res.user.name || 'Administrator');
+          document.querySelectorAll('.user-role-slot').forEach(el => el.innerText = res.user.role || 'Admin');
+          const avatar = document.getElementById('avatarLetter');
+          if (avatar) avatar.innerText = (res.user.name || 'A').charAt(0).toUpperCase();
+
+          Swal.fire({ icon: 'success', title: 'Welcome!', text: 'Login successful', timer: 800, showConfirmButton: false });
+          
+          loadSystemData();
+          switchView('dashboard');
+        } else {
+          Swal.fire({ icon: 'error', title: 'Login Failed', text: res?.message || 'Invalid username or password' });
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In to Portal';
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Login failed' });
       }
     }
 
     function checkAuth() {
-      const user = localStorage.getItem('gas_user');
+      const userStr = localStorage.getItem('gas_user');
       const loginView = document.getElementById('loginView');
       const dashboardView = document.getElementById('dashboardView');
 
-      if (!user) {
+      if (!userStr) {
         if (loginView) loginView.style.display = 'flex';
         if (dashboardView) dashboardView.style.display = 'none';
       } else {
+        try {
+          State.user = JSON.parse(userStr);
+        } catch(e) {}
+
         if (loginView) loginView.style.display = 'none';
         if (dashboardView) dashboardView.style.display = 'block';
-        if (typeof initDashboard === 'function') initDashboard();
+
+        // Update user slots
+        document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = State.user?.name || 'Administrator');
+        document.querySelectorAll('.user-role-slot').forEach(el => el.innerText = State.user?.role || 'Admin');
+        const avatar = document.getElementById('avatarLetter');
+        if (avatar) avatar.innerText = (State.user?.name || 'A').charAt(0).toUpperCase();
+
+        loadSystemData();
+        const hash = window.location.hash.substring(1);
+        if (hash && ['dashboard', 'active-registry', 'history', 'vendors', 'reports', 'analytics', 'export', 'employees', 'settings', 'consumers'].includes(hash)) {
+          switchView(hash);
+        } else {
+          switchView('dashboard');
+        }
       }
     }
   </script>
