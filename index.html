@@ -202,7 +202,7 @@
       <div class="sidebar-header">
         <div class="sidebar-logo-container"><i class="fas fa-gas-pump" style="font-size:1.4rem; color:#f97316;"></i></div>
         <span class="sidebar-brand"><span class="company-name-slot">Shiv Shakti Hp Gas Agency</span></span>
-        <button class="modal-close" style="color: white; display: none;" onclick="document.getElementById('sidebar').classList.remove('open')">&times;</button>
+        <button class="modal-close" style="color: white; display: none;" onclick="closeSidebar()">&times;</button>
       </div>
 
       <div class="sidebar-nav">
@@ -2095,7 +2095,10 @@
     function openSidebar() {
       const sidebar = document.getElementById('sidebar');
       const overlay = document.getElementById('sidebarOverlay');
-      if (sidebar) sidebar.classList.add('open');
+      if (sidebar) {
+        sidebar.classList.remove('collapsed');
+        sidebar.classList.add('open');
+      }
       if (overlay) overlay.classList.add('show');
       document.body.style.overflow = 'hidden';
     }
@@ -2228,10 +2231,24 @@
       const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
       const sidebar = document.getElementById('sidebar');
       
-      const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
-      if (isCollapsed && sidebar) {
-        sidebar.classList.add('collapsed');
+      if (window.innerWidth > 991) {
+        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isCollapsed && sidebar) {
+          sidebar.classList.add('collapsed');
+        }
+      } else {
+        if (sidebar) sidebar.classList.remove('collapsed');
       }
+
+      window.addEventListener('resize', () => {
+        if (window.innerWidth <= 991 && sidebar) {
+          sidebar.classList.remove('collapsed');
+        } else if (window.innerWidth > 991 && sidebar) {
+          if (localStorage.getItem('sidebar_collapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+          }
+        }
+      });
 
       if (sidebarToggleBtn && sidebar) {
         sidebarToggleBtn.addEventListener('click', () => {
