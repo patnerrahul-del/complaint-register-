@@ -429,7 +429,7 @@
             <div class="dashboard-panel-head">
               <div>
                 <span class="dashboard-kicker">Live workload</span>
-                <h3>Complaint collection</h3>
+                <h3 id="dashWorkloadTitle">Complaint collection</h3>
               </div>
               <button class="btn btn-outline btn-sm" onclick="switchView('active-registry', null)">View all <i class="fas fa-arrow-right"></i></button>
             </div>
@@ -1221,21 +1221,21 @@
           <i class="fas fa-truck-loading"></i>
           <span>Deliveries</span>
         </button>
-        <button class="bnav-item" id="vbnav-history" onclick="switchView('history', null); setBottomNav('history')">
-          <i class="fas fa-history"></i>
-          <span>History</span>
+        <button class="bnav-item" id="vbnav-dashboard" onclick="switchView('dashboard', null); setBottomNav('dashboard')">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Dashboard</span>
         </button>
         <button class="bnav-item" id="vbnav-reports" onclick="switchView('reports', null); setBottomNav('reports')">
           <i class="fas fa-file-invoice"></i>
           <span>Trip Sheet</span>
         </button>
-        <button class="bnav-item" onclick="openChangePasswordModal()">
-          <i class="fas fa-key" style="color: #f59e0b;"></i>
-          <span>Password</span>
+        <button class="bnav-item" id="vbnav-history" onclick="switchView('history', null); setBottomNav('history')">
+          <i class="fas fa-history"></i>
+          <span>History</span>
         </button>
-        <button class="bnav-item" onclick="handleLogout()">
-          <i class="fas fa-sign-out-alt" style="color: #ef4444;"></i>
-          <span>Logout</span>
+        <button class="bnav-item" id="vbnav-more" onclick="openVendorMoreSheet()">
+          <i class="fas fa-ellipsis-h" style="color: #6366f1;"></i>
+          <span>More</span>
         </button>
       </div>
 
@@ -2108,6 +2108,30 @@
     }
 
     // Bottom Nav active state sync
+    function openVendorMoreSheet() {
+      const sheet = document.getElementById('vendorMoreSheet');
+      if (!sheet) return;
+      const avatarEl = document.getElementById('vendorSheetAvatar');
+      const mobEl = document.getElementById('vendorSheetMobile');
+      if (avatarEl) {
+        if (State.user?.profile_photo && State.user.profile_photo !== 'default-photo.png') {
+          avatarEl.innerHTML = `<img src="${State.user.profile_photo}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" alt="Profile">`;
+        } else {
+          avatarEl.innerText = (State.user?.name || 'V').trim().charAt(0).toUpperCase();
+        }
+      }
+      if (mobEl) {
+        mobEl.innerText = State.user?.mobile || State.user?.username || '';
+      }
+      document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = State.user?.name || 'Vendor');
+      sheet.style.display = 'flex';
+    }
+
+    function closeVendorMoreSheet() {
+      const sheet = document.getElementById('vendorMoreSheet');
+      if (sheet) sheet.style.display = 'none';
+    }
+
     function setBottomNav(viewName) {
       document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById('bnav-' + viewName);
@@ -2286,6 +2310,10 @@
       const title = viewTitleMap[viewName];
       document.getElementById('viewTitle').innerText = title[0];
       document.getElementById('viewSubtitle').innerText = title[1];
+      const dashWorkloadTitle = document.getElementById('dashWorkloadTitle');
+      if (dashWorkloadTitle) {
+        dashWorkloadTitle.innerText = isVendor ? 'My Deliveries Progress' : 'Complaint collection';
+      }
 
       // Refresh corresponding sections
       if (viewName === 'dashboard') loadDashboardCharts();
@@ -2514,23 +2542,28 @@
     function renderStats(stats) {
       if (!stats) return;
       const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val || 0; };
-      setEl('statTotal',     stats.total      || 0);
-      setEl('statPending',   stats.pending    || 0);
-      setEl('statProgress',  stats.inProgress || stats.in_progress || 0);
-      setEl('statDelivered', stats.delivered  || 0);
-      setEl('statToday',     stats.todayNew   || stats.today || 0);
-      setEl('vmStatTotal',   stats.total      || 0);
-      setEl('vmStatPending', (Number(stats.pending || 0) + Number(stats.inProgress || stats.in_progress || 0)));
-      setEl('vmStatDelivered', stats.delivered || 0);
       const pending = Number(stats.pending || 0);
-      const inProgress = Number(stats.inProgress || stats.in_progress || 0);
-      const resolved = Number(stats.delivered || 0);
-      const total = Number(stats.total || 0);
+      const inProgress = Number(stats.inProgress || stats.in_progress || stats.assigned || 0);
+      const resolved = Number(stats.delivered || stats.resolved || 0);
+      const total = Number(stats.total || (pending + inProgress + resolved) || 0);
+      const today = Number(stats.todayNew || stats.today || 0);
+
+      setEl('statTotal',     total);
+      setEl('statPending',   pending);
+      setEl('statProgress',  inProgress);
+      setEl('statDelivered', resolved);
+      setEl('statToday',     today);
+
+      setEl('vmStatTotal',   total);
+      setEl('vmStatPending', (pending + inProgress));
+      setEl('vmStatDelivered', resolved);
+
       setEl('dashTotal', total);
       setEl('dashPending', pending);
       setEl('dashProgress', inProgress);
       setEl('dashResolved', resolved);
-      setEl('dashToday', stats.todayNew || stats.today || 0);
+      setEl('dashToday', today);
+
       setEl('dashPendingLabel', pending);
       setEl('dashProgressLabel', inProgress);
       setEl('dashResolvedLabel', resolved);
@@ -2548,7 +2581,11 @@
       fetch('?action=get_analytics')
         .then(res => res.json())
         .then(res => {
-          if (!res.success || !res.analytics || typeof Chart === 'undefined') return;
+          if (!res || !res.success) return;
+          if (res.stats) {
+            renderStats(res.stats);
+          }
+          if (!res.analytics || typeof Chart === 'undefined') return;
           const data = res.analytics;
           window.dashboardCharts = window.dashboardCharts || {};
           ['status', 'trend'].forEach(key => {
@@ -4493,7 +4530,78 @@
               }
             </style>
           </head>
-          <body onload="window.print()">${body}</body>
+          <body onload="window.print()">${body}  <!-- Modal: Vendor More Options Bottom Sheet -->
+  <div class="modal-overlay" id="vendorMoreSheet" onclick="if(event.target===this) closeVendorMoreSheet()" style="display: none; align-items: flex-end; padding: 0; z-index: 10000; background: rgba(15,23,42,0.65); backdrop-filter: blur(5px);">
+    <div style="background: var(--bg-card, #ffffff); width: 100%; max-width: 520px; margin: 0 auto; border-radius: 22px 22px 0 0; padding: 16px 20px 32px 20px; box-shadow: 0 -12px 35px rgba(0,0,0,0.25); animation: slideUpSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; max-height: 85vh; overflow-y: auto;">
+      <div style="width: 44px; height: 5px; background: #cbd5e1; border-radius: 99px; margin: 0 auto 16px auto;"></div>
+      
+      <!-- Vendor Info Card -->
+      <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin-bottom: 16px;">
+        <div id="vendorSheetAvatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25);">
+          V
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div class="user-name-slot" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Delivery Partner</div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+            <span style="font-size: 0.72rem; font-weight: 700; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 99px;">Delivery Partner</span>
+            <span id="vendorSheetMobile" style="font-size: 0.78rem; color: #64748b; font-weight: 600;"></span>
+          </div>
+        </div>
+        <button type="button" onclick="closeVendorMoreSheet()" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer; padding: 6px;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Actions List -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" onclick="closeVendorMoreSheet(); openChangePasswordModal();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #fed7aa; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #ffedd5; color: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-key"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">Change Password</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Apna login password badlein</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
+        </button>
+
+        <button type="button" onclick="closeVendorMoreSheet(); openMyProfileModal();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">Edit Profile & Photo</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Naam aur profile photo update karein</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
+        </button>
+
+        <button type="button" onclick="closeVendorMoreSheet(); optimizeVendorRoute();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-route"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">🗺️ GPS Route Optimizer</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Pending stops ka Google Maps route navigation</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
+        </button>
+
+        <button type="button" onclick="closeVendorMoreSheet(); handleLogout();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #fecaca; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #dc2626;">Logout from Portal</div>
+            <div style="font-size: 0.75rem; color: #991b1b;">Apne account se logout karein</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #fca5a5; font-size: 0.9rem;"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</body>
         </html>
       `);
       printWin.document.close();

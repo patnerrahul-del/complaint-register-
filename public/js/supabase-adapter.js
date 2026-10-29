@@ -246,12 +246,20 @@ async function handleSupabaseAction(urlStr, options) {
         allComps = allComps.filter(c => complaintMatchesVendor(c, vFilter));
       }
       const todayStr = new Date().toISOString().slice(0, 10);
+      const pCount = allComps.filter(c => c.status === 'Pending').length;
+      const ipCount = allComps.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length;
+      const dCount = allComps.filter(c => c.status === 'Delivered' || c.status === 'Resolved' || c.status === 'Closed').length;
+      const tCount = allComps.filter(c => (c.created_at || '').startsWith(todayStr)).length;
       const stats = {
         total: allComps.length,
-        pending: allComps.filter(c => c.status === 'Pending').length,
-        inProgress: allComps.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length,
-        delivered: allComps.filter(c => c.status === 'Delivered' || c.status === 'Resolved').length,
-        todayNew: allComps.filter(c => (c.created_at || '').startsWith(todayStr)).length
+        pending: pCount,
+        inProgress: ipCount,
+        in_progress: ipCount,
+        assigned: ipCount,
+        delivered: dCount,
+        resolved: dCount,
+        todayNew: tCount,
+        today: tCount
       };
 
       const defaultUser = currentUser || {
@@ -463,11 +471,21 @@ async function handleSupabaseAction(urlStr, options) {
         list = list.filter(c => complaintMatchesVendor(c, vFilter));
       }
       const vendors = vendorsRes.data || [];
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const pCount = list.filter(c => c.status === 'Pending').length;
+      const ipCount = list.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length;
+      const dCount = list.filter(c => c.status === 'Delivered' || c.status === 'Resolved' || c.status === 'Closed').length;
+      const tCount = list.filter(c => (c.created_at || '').startsWith(todayStr)).length;
       const stats = {
         total: list.length,
-        pending: list.filter(c => c.status === 'Pending').length,
-        assigned: list.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length,
-        delivered: list.filter(c => c.status === 'Delivered' || c.status === 'Resolved').length,
+        pending: pCount,
+        assigned: ipCount,
+        inProgress: ipCount,
+        in_progress: ipCount,
+        delivered: dCount,
+        resolved: dCount,
+        todayNew: tCount,
+        today: tCount,
         failed: list.filter(c => c.status === 'Failed').length,
         total_vendors: vendors.length,
         total_consumers: consumersCount.count || 23658
