@@ -2128,3 +2128,44 @@
 .vd-deliver-main-btn:active {
   transform: scale(0.98);
 }
+
+
+/* =========================================================
+   VENDOR MOBILE-FIRST STREAMLINED UI
+   ========================================================= */
+body.vendor-mode .mobile-fab {
+  display: none !important;
+}
+body.vendor-mode .appearance-control {
+  display: none !important;
+}
+body.vendor-mode #headerAboutBtn {
+  display: none !important;
+}
+body.vendor-mode .pipeline-container {
+  display: none !important;
+}
+body.vendor-mode #statsGrid {
+  display: none !important;
+}
+body.vendor-mode #vendorMobileStats {
+  display: block !important;
+}
+body.vendor-mode #filterSourceGroup,
+body.vendor-mode #filterTagGroup {
+  display: none !important;
+}
+body.vendor-mode #batchActions {
+  display: none !important;
+}
+body.vendor-mode .view-section {
+  padding: 0.85rem !important;
+}
+@media (max-width: 768px) {
+  body.vendor-mode .toolbar {
+    padding: 0.85rem !important;
+  }
+  body.vendor-mode .content-card {
+    border-radius: 14px !important;
+  }
+}

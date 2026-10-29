@@ -347,7 +347,7 @@
             <label class="dark-mode-row"><span><i class="fas fa-moon"></i> Dark mode</span><input type="checkbox" id="darkModeToggle" onchange="setDarkMode(this.checked)"></label>
           </div>
         </div>
-        <button class="appearance-toggle" type="button" onclick="openAboutModal()" title="About System & Developer Guide" style="margin-left: -0.5rem;" aria-label="About System">
+        <button class="appearance-toggle header-about-btn" id="headerAboutBtn" type="button" onclick="openAboutModal()" title="About System & Developer Guide" style="margin-left: -0.5rem;" aria-label="About System">
           <i class="fas fa-question-circle" style="color: #3b82f6;"></i>
         </button>
         <!-- Top-Bar Branch Selector (visible to Admin when Multi-Branch is Enabled) -->
@@ -500,6 +500,24 @@
       </section>
 
       <section id="view-active-registry" class="view-section">
+        <!-- Vendor Compact Mobile KPI Stats (Shown ONLY for Vendors on Mobile/Desktop) -->
+        <div id="vendorMobileStats" style="display: none; margin-bottom: 0.85rem;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <div style="background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 10px 8px; text-align: center; box-shadow: 0 2px 6px rgba(37,99,235,0.06);">
+              <div style="font-size: 1.35rem; font-weight: 800; color: #2563eb;" id="vmStatTotal">0</div>
+              <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Cases</div>
+            </div>
+            <div style="background: #ffffff; border: 1.5px solid #fde68a; border-radius: 12px; padding: 10px 8px; text-align: center; box-shadow: 0 2px 6px rgba(217,119,6,0.06);">
+              <div style="font-size: 1.35rem; font-weight: 800; color: #d97706;" id="vmStatPending">0</div>
+              <div style="font-size: 0.68rem; font-weight: 700; color: #b45309; text-transform: uppercase;">To Deliver</div>
+            </div>
+            <div style="background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 10px 8px; text-align: center; box-shadow: 0 2px 6px rgba(22,163,74,0.06);">
+              <div style="font-size: 1.35rem; font-weight: 800; color: #16a34a;" id="vmStatDelivered">0</div>
+              <div style="font-size: 0.68rem; font-weight: 700; color: #15803d; text-transform: uppercase;">Delivered</div>
+            </div>
+          </div>
+        </div>
+
         <div class="stats-grid" id="statsGrid" style="grid-template-columns: repeat(5, 1fr);">
           <div class="stat-card premium-card-1">
             <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
@@ -602,7 +620,7 @@
                   <option value="Resolved">Resolved</option>
                 </select>
               </div>
-              <div class="form-group" style="margin: 0;">
+              <div class="form-group" id="filterSourceGroup" style="margin: 0;">
                 <label style="font-weight: 700; font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 0.4rem;">
                   <i class="fas fa-tags text-primary"></i> COMPLAINT SOURCE
                 </label>
@@ -610,7 +628,7 @@
                   <option value="">All Sources</option>
                 </select>
               </div>
-              <div class="form-group" style="margin: 0;">
+              <div class="form-group" id="filterTagGroup" style="margin: 0;">
                 <label style="font-weight: 700; font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 0.4rem;">
                   <i class="fas fa-tag text-primary"></i> COMPLAINT TAG
                 </label>
@@ -1193,49 +1211,55 @@
 
     <!-- ⚡ FAB Button (Mobile) -->
     
-      <button class="mobile-fab" onclick="openAddComplaintModal()" title="Add Complaint">
+      <button class="mobile-fab" id="mobileFabBtn" onclick="openAddComplaintModal()" title="Add Complaint">
         <i class="fas fa-plus"></i>
       </button>
     <!-- endif -->
 
     <!-- 📱 Bottom Navigation Bar (Mobile Only) -->
     <nav class="bottom-nav" id="bottomNav">
-      <div class="bottom-nav-inner">
-        
-          <button class="bnav-item active" id="bnav-active-registry" onclick="switchView('active-registry', null); setBottomNav('active-registry')">
-            <i class="fas fa-truck-loading"></i>
-            <span>Deliveries</span>
-          </button>
-          <button class="bnav-item" id="bnav-history" onclick="switchView('history', null); setBottomNav('history')">
-            <i class="fas fa-history"></i>
-            <span>History</span>
-          </button>
-          <button class="bnav-item" id="bnav-reports" onclick="switchView('reports', null); setBottomNav('reports')">
-            <i class="fas fa-file-invoice"></i>
-            <span>Trip Sheet</span>
-          </button>
-          <button class="bnav-item" id="bnav-dashboard" onclick="switchView('dashboard', null); setBottomNav('dashboard')">
-            <i class="fas fa-chart-pie"></i>
-            <span>Portal</span>
-          </button>
-        <!-- logo else -->
-          <button class="bnav-item active" id="bnav-active-registry" onclick="switchView('active-registry', null); setBottomNav('active-registry')">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Active</span>
-          </button>
-          <button class="bnav-item" id="bnav-history" onclick="switchView('history', null); setBottomNav('history')">
-            <i class="fas fa-history"></i>
-            <span>History</span>
-          </button>
-          <button class="bnav-item" id="bnav-reports" onclick="switchView('reports', null); setBottomNav('reports')">
-            <i class="fas fa-print"></i>
-            <span>Dispatch</span>
-          </button>
-          <button class="bnav-item" id="bnav-vendors" onclick="switchView('vendors', null); setBottomNav('vendors')">
-            <i class="fas fa-truck"></i>
-            <span>Vendors</span>
-          </button>
-        <!-- endif -->
+      <!-- Vendor Mobile Bottom Nav (5 essential items: No clutter, No duplicates) -->
+      <div class="bottom-nav-inner" id="vendorBottomNav" style="display: none;">
+        <button class="bnav-item active" id="vbnav-active-registry" onclick="switchView('active-registry', null); setBottomNav('active-registry')">
+          <i class="fas fa-truck-loading"></i>
+          <span>Deliveries</span>
+        </button>
+        <button class="bnav-item" id="vbnav-history" onclick="switchView('history', null); setBottomNav('history')">
+          <i class="fas fa-history"></i>
+          <span>History</span>
+        </button>
+        <button class="bnav-item" id="vbnav-reports" onclick="switchView('reports', null); setBottomNav('reports')">
+          <i class="fas fa-file-invoice"></i>
+          <span>Trip Sheet</span>
+        </button>
+        <button class="bnav-item" onclick="openChangePasswordModal()">
+          <i class="fas fa-key" style="color: #f59e0b;"></i>
+          <span>Password</span>
+        </button>
+        <button class="bnav-item" onclick="handleLogout()">
+          <i class="fas fa-sign-out-alt" style="color: #ef4444;"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+
+      <!-- Admin Mobile Bottom Nav -->
+      <div class="bottom-nav-inner" id="adminBottomNav">
+        <button class="bnav-item active" id="bnav-active-registry" onclick="switchView('active-registry', null); setBottomNav('active-registry')">
+          <i class="fas fa-clipboard-list"></i>
+          <span>Active</span>
+        </button>
+        <button class="bnav-item" id="bnav-history" onclick="switchView('history', null); setBottomNav('history')">
+          <i class="fas fa-history"></i>
+          <span>History</span>
+        </button>
+        <button class="bnav-item" id="bnav-reports" onclick="switchView('reports', null); setBottomNav('reports')">
+          <i class="fas fa-print"></i>
+          <span>Dispatch</span>
+        </button>
+        <button class="bnav-item" id="bnav-vendors" onclick="switchView('vendors', null); setBottomNav('vendors')">
+          <i class="fas fa-truck"></i>
+          <span>Vendors</span>
+        </button>
         <button class="bnav-item" id="bnav-more" onclick="openSidebar()">
           <i class="fas fa-bars"></i>
           <span>More</span>
@@ -1922,6 +1946,20 @@
         const addCmpBtn = document.getElementById('headerAddComplaintBtn');
         if (addCmpBtn) addCmpBtn.style.display = isDelivery ? 'none' : 'inline-flex';
 
+        if (isDelivery) {
+          document.body.classList.add('vendor-mode');
+        } else {
+          document.body.classList.remove('vendor-mode');
+        }
+
+        const vNav = document.getElementById('vendorBottomNav');
+        const aNav = document.getElementById('adminBottomNav');
+        if (vNav) vNav.style.display = isDelivery ? 'flex' : 'none';
+        if (aNav) aNav.style.display = isDelivery ? 'none' : 'flex';
+
+        const mobFab = document.getElementById('mobileFabBtn') || document.querySelector('.mobile-fab');
+        if (mobFab) mobFab.style.display = isDelivery ? 'none' : '';
+
         loadSystemData();
         const hash = window.location.hash.substring(1);
         if (hash && ['dashboard', 'active-registry', 'history', 'vendors', 'reports', 'analytics', 'export', 'employees', 'settings', 'consumers'].includes(hash)) {
@@ -2020,6 +2058,8 @@
       document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById('bnav-' + viewName);
       if (btn) btn.classList.add('active');
+      const vbtn = document.getElementById('vbnav-' + viewName);
+      if (vbtn) vbtn.classList.add('active');
     }
     
     function showToast(msg, type = 'success') {
@@ -2418,6 +2458,9 @@
       setEl('statProgress',  stats.inProgress || stats.in_progress || 0);
       setEl('statDelivered', stats.delivered  || 0);
       setEl('statToday',     stats.todayNew   || stats.today || 0);
+      setEl('vmStatTotal',   stats.total      || 0);
+      setEl('vmStatPending', (Number(stats.pending || 0) + Number(stats.inProgress || stats.in_progress || 0)));
+      setEl('vmStatDelivered', stats.delivered || 0);
       const pending = Number(stats.pending || 0);
       const inProgress = Number(stats.inProgress || stats.in_progress || 0);
       const resolved = Number(stats.delivered || 0);
