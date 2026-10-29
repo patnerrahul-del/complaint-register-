@@ -243,6 +243,9 @@
         <div class="nav-item" onclick="openAboutModal()">
           <i class="fas fa-info-circle" style="color: #6366f1 !important;"></i> <span>About & System Help</span>
         </div>
+        <div class="nav-item" onclick="openChangePasswordModal()" style="cursor: pointer;">
+          <i class="fas fa-key" style="color: #f59e0b !important;"></i> <span>Change Password</span>
+        </div>
       </div>
 
 
@@ -265,9 +268,14 @@
               <div class="sidebar-user-role" style="font-size:0.68rem; color:#94a3b8; font-weight:600;"><span class="user-role-slot">Admin</span></div>
             </div>
           </div>
-          <button class="logout-btn" onclick="handleLogout()" title="Logout" style="background: rgba(239, 68, 68, 0.15); border: none; color: #ef4444; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1)';">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+            <button type="button" onclick="openChangePasswordModal()" title="Change Password" style="background: rgba(245, 158, 11, 0.15); border: none; color: #f59e0b; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.2s;" onmouseover="this.style.background='rgba(245, 158, 11, 0.3)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(245, 158, 11, 0.15)'; this.style.transform='scale(1)';">
+              <i class="fas fa-key"></i>
+            </button>
+            <button class="logout-btn" onclick="handleLogout()" title="Logout" style="background: rgba(239, 68, 68, 0.15); border: none; color: #ef4444; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1)';">
+              <i class="fas fa-sign-out-alt"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Sidebar Branding Footer -->
@@ -352,14 +360,9 @@
               <i class="fas fa-plus"></i> Add Complaint
             </button>
           <!-- logo else -->
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <button class="btn btn-outline" onclick="openChangePasswordModal()" style="background:#fff; border:1px solid #cbd5e1; font-weight:700; color:#1e293b; box-shadow:0 2px 4px rgba(0,0,0,0.04);">
-                <i class="fas fa-key" style="color:#f59e0b;"></i> Change Password
-              </button>
-              <button class="btn btn-primary" onclick="optimizeVendorRoute()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
-                <i class="fas fa-route"></i> 🗺️ Route Optimizer
-              </button>
-            </div>
+            <button class="btn btn-primary" onclick="optimizeVendorRoute()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+              <i class="fas fa-route"></i> 🗺️ Route Optimizer
+            </button>
           <!-- endif -->
           <button class="btn btn-outline" onclick="triggerCsvExport()">
             <i class="fas fa-file-csv"></i> CSV
@@ -535,6 +538,22 @@
           </div>
         </div>
 
+        <!-- Vendor Quick Delivery Bar -->
+        <div id="vendorDeliveryActionBar" style="display: none; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 16px; margin-bottom: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: #2563eb; color: #fff; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+              <i class="fas fa-truck"></i>
+            </div>
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #1e293b;">Delivery Boy Console</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Tap "Deliver Cylinder" to capture customer sign, OTP or photo proof.</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="optimizeVendorRoute()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.3); font-weight: 800;">
+            <i class="fas fa-route"></i> 🗺️ GPS Route (All Pending Stops)
+          </button>
+        </div>
+
         <!-- Chevron Status Pipeline Flow -->
         <div class="pipeline-container">
           <div class="pipeline-step step-all active" onclick="setPipelineFilter('')">All Active</div>
@@ -547,8 +566,15 @@
         <div class="content-card">
           <div class="toolbar" style="display: flex; flex-direction: column; gap: 1rem; align-items: stretch; padding: 1.25rem 1.5rem; background: #ffffff;">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fas fa-filter text-primary"></i> Filters
+              <div style="display:flex; align-items:center; gap: 14px; flex-wrap:wrap;">
+                <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="fas fa-filter text-primary"></i> Filters
+                </div>
+                <!-- View Mode Toggle: Cards vs Table -->
+                <div class="view-mode-toggle" id="registryViewToggle" style="display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 8px;">
+                  <button type="button" id="btnViewCards" class="btn btn-sm" onclick="setRegistryViewMode('cards')" style="padding: 4px 10px; font-weight: 700; border: none; border-radius: 6px; font-size: 0.75rem;"><i class="fas fa-th-large"></i> Cards</button>
+                  <button type="button" id="btnViewTable" class="btn btn-sm" onclick="setRegistryViewMode('table')" style="padding: 4px 10px; font-weight: 700; border: none; border-radius: 6px; font-size: 0.75rem;"><i class="fas fa-list"></i> Table</button>
+                </div>
               </div>
               <div id="batchActions" style="display: none; gap: 0.5rem; align-items: center;">
                 <span id="batchCount" style="font-size: 0.8rem; font-weight: 700; margin-right: 0.5rem;">0 Selected</span>
@@ -606,7 +632,10 @@
             </div>
           </div>
 
-          <div class="table-container">
+          <!-- Touch-friendly Delivery Cards View for Vendors & Mobile -->
+          <div id="vendorCardsContainer" class="vendor-cards-grid" style="display: none;"></div>
+
+          <div class="table-container" id="registryTableContainer">
             <table>
               <thead>
                 <tr>
@@ -1878,8 +1907,10 @@
 
         const vendorBanner = document.getElementById('vendorWelcomeBanner');
         const adminBanner = document.getElementById('adminWelcomeBanner');
+        const vendorBar = document.getElementById('vendorDeliveryActionBar');
         if (vendorBanner) vendorBanner.style.display = isDelivery ? 'flex' : 'none';
         if (adminBanner) adminBanner.style.display = isDelivery ? 'none' : 'flex';
+        if (vendorBar) vendorBar.style.display = isDelivery ? 'flex' : 'none';
 
         const vendorShortcuts = document.getElementById('vendorShortcuts');
         const adminShortcuts = document.getElementById('adminShortcuts');
@@ -2439,13 +2470,49 @@
         .catch(err => console.error('Dashboard charts failed:', err));
     }
 
+    // View Mode Management: Cards vs Table
+    function setRegistryViewMode(mode) {
+      State.registryViewMode = mode;
+      localStorage.setItem('gas_registry_view_mode', mode);
+      syncRegistryViewMode();
+    }
+
+    function syncRegistryViewMode() {
+      const isVendor = State.user && (State.user.role === 'Vendor' || State.user.role === 'vendor' || State.user.role === 'Delivery');
+      const savedMode = localStorage.getItem('gas_registry_view_mode');
+      const mode = savedMode || (isVendor ? 'cards' : 'table');
+
+      const cardsContainer = document.getElementById('vendorCardsContainer');
+      const tableContainer = document.getElementById('registryTableContainer') || document.querySelector('.table-container');
+      const btnCards = document.getElementById('btnViewCards');
+      const btnTable = document.getElementById('btnViewTable');
+
+      if (mode === 'cards') {
+        if (cardsContainer) cardsContainer.style.display = 'grid';
+        if (tableContainer) tableContainer.style.display = 'none';
+        if (btnCards) { btnCards.style.background = '#2563eb'; btnCards.style.color = '#fff'; }
+        if (btnTable) { btnTable.style.background = 'transparent'; btnTable.style.color = '#64748b'; }
+      } else {
+        if (cardsContainer) cardsContainer.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'block';
+        if (btnCards) { btnCards.style.background = 'transparent'; btnCards.style.color = '#64748b'; }
+        if (btnTable) { btnTable.style.background = '#2563eb'; btnTable.style.color = '#fff'; }
+      }
+    }
+
     function renderComplaintsTable(res) {
       const tbody = document.getElementById('complaintsTableBody');
+      const cardsContainer = document.getElementById('vendorCardsContainer');
       tbody.innerHTML = '';
+      if (cardsContainer) cardsContainer.innerHTML = '';
 
       if (!res.rows || res.rows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:1rem;display:block;"></i>No active complaints found.</td></tr>';
+        if (cardsContainer) {
+          cardsContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted);background:#fff;border-radius:12px;border:1px dashed #cbd5e1;"><i class="fas fa-inbox" style="font-size:2.4rem;color:#94a3b8;margin-bottom:1rem;display:block;"></i><b>No active deliveries found.</b><div style="font-size:0.8rem;margin-top:6px;">Any new delivery assigned to you will appear here automatically.</div></div>';
+        }
         document.getElementById('pgInfo').innerText = '0 of 0';
+        syncRegistryViewMode();
         return;
       }
 
@@ -2547,7 +2614,72 @@
           </td>
         `;
         tbody.appendChild(tr);
+
+        // Also build Touch Delivery Card for Vendor & Mobile View
+        if (cardsContainer) {
+          const card = document.createElement('div');
+          card.className = `vendor-delivery-card ${isPending ? 'pending' : 'delivered'}`;
+          const proofPillsArr = [];
+          if (r.signature_url) proofPillsArr.push('<span style="font-size:0.7rem;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:700;">✍️ Sign</span>');
+          if (r.photo_proof_url) proofPillsArr.push('<span style="font-size:0.7rem;background:#fdf4ff;color:#9333ea;padding:2px 6px;border-radius:4px;font-weight:700;">📸 Photo</span>');
+          if (r.fail_notes && r.fail_notes.includes('OTP Verified')) proofPillsArr.push('<span style="font-size:0.7rem;background:#ecfdf5;color:#059669;padding:2px 6px;border-radius:4px;font-weight:700;">🔢 OTP</span>');
+
+          card.innerHTML = `
+            <div class="vd-card-header">
+              <span class="vd-token">#${r.id}</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="badge badge-${r.status.toLowerCase().replace(' ', '-')}">${r.status}</span>
+                ${agingBadge}
+              </div>
+            </div>
+            <div class="vd-consumer-info">
+              <div class="vd-consumer-name">${escapeHtml(r.consumer_name)}${repeatBadge}</div>
+              <div class="vd-consumer-acc"><i class="fas fa-id-card"></i> Acc No: <b>${escapeHtml(r.consumer_number || 'N/A')}</b></div>
+            </div>
+            <div class="vd-address-box">
+              <i class="fas fa-map-marker-alt" style="color:#ea580c;"></i>
+              <span>${escapeHtml(r.address || 'Address not available')}</span>
+            </div>
+            <div class="vd-complaint-box">
+              <i class="fas fa-comment-dots" style="color:#64748b;"></i>
+              <span><b>Complaint:</b> ${escapeHtml(r.complaint || 'Delivery')} ${tagBadge}</span>
+            </div>
+            <div class="vd-actions-bar">
+              ${cleanMobile ? `
+                <a href="tel:${cleanMobile}" class="vd-action-btn vd-btn-call" title="Call Customer">
+                  <i class="fas fa-phone-alt"></i> Call (${cleanMobile})
+                </a>
+                <button type="button" onclick="shareComplaintViaWhatsApp(${r.id}, '${cleanMobile}')" class="vd-action-btn vd-btn-wa" title="WhatsApp">
+                  <i class="fab fa-whatsapp"></i> WhatsApp
+                </button>
+              ` : ''}
+              ${r.address ? `
+                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}" target="_blank" class="vd-action-btn vd-btn-map" title="Directions">
+                  <i class="fas fa-directions"></i> Map
+                </a>
+              ` : ''}
+            </div>
+            <div class="vd-deliver-btn-row">
+              ${isUnresolved ? `
+                <button class="btn btn-success vd-deliver-main-btn" onclick="quickMarkDelivered(${r.id}, '${escapeHtml(r.consumer_name)}')">
+                  <i class="fas fa-check-circle"></i> Deliver Cylinder (Take Proof)
+                </button>
+              ` : `
+                <div style="flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span class="badge badge-delivered" style="font-size:0.8rem;padding:6px 10px;"><i class="fas fa-check-double"></i> Delivered</span>
+                  ${proofPillsArr.join('')}
+                </div>
+              `}
+              <button class="btn btn-outline btn-sm" onclick="viewComplaintDetails(${r.id})" style="font-weight:700;">
+                <i class="fas fa-eye"></i> Details
+              </button>
+            </div>
+          `;
+          cardsContainer.appendChild(card);
+        }
       });
+
+      syncRegistryViewMode();
 
       // Update Pagination Indicators
       document.getElementById('pgInfo').innerText = `${res.rows.length} of ${res.total}`;

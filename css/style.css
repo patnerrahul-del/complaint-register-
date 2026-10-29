@@ -1974,3 +1974,157 @@
       background: #ffffff;
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     }
+
+
+/* ---- Modern Vendor Delivery Cards & View Switcher ---- */
+.vendor-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.15rem;
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+}
+@media (max-width: 640px) {
+  .vendor-cards-grid {
+    grid-template-columns: 1fr;
+    padding: 0.75rem;
+    gap: 0.85rem;
+  }
+}
+.vendor-delivery-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+}
+.vendor-delivery-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.09);
+}
+.vendor-delivery-card.pending {
+  border-left: 6px solid #f59e0b;
+}
+.vendor-delivery-card.delivered {
+  border-left: 6px solid #10b981;
+}
+.vd-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+.vd-token {
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 1.1rem;
+  letter-spacing: -0.3px;
+}
+.vd-consumer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vd-consumer-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.3;
+}
+.vd-consumer-acc {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.vd-address-box, .vd-complaint-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #334155;
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 8px;
+  line-height: 1.4;
+  border: 1px solid #f1f5f9;
+}
+.vd-address-box i, .vd-complaint-box i {
+  margin-top: 3px;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.vd-actions-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.vd-action-btn {
+  flex: 1;
+  min-width: 90px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.vd-action-btn:active {
+  filter: brightness(0.9);
+  transform: scale(0.98);
+}
+.vd-btn-call {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.vd-btn-wa {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+.vd-btn-map {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+.vd-deliver-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+.vd-deliver-main-btn {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.vd-deliver-main-btn:active {
+  transform: scale(0.98);
+}
