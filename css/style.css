@@ -18,7 +18,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  z-index: 999999;
+  z-index: 100;
   font-family: 'Plus Jakarta Sans', sans-serif;
   box-sizing: border-box;
 }
@@ -2514,4 +2514,10 @@ body.vendor-mode .appearance-control {
 }
 body.vendor-mode #headerAboutBtn {
   display: none !important;
+}
+
+
+/* High-priority overlay for SweetAlert2 */
+.swal2-container {
+  z-index: 10000000 !important;
 }
