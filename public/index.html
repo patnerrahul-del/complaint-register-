@@ -247,37 +247,38 @@
 
 
 
-      <div class="sidebar-user" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
-          <div class="sidebar-user-avatar" style="position: relative;">
-            
-              
-            <!-- logo else -->
+      <!-- Sidebar Bottom Pinned Container -->
+      <div class="sidebar-bottom-container" style="margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 8px;">
+        <div class="sidebar-user" style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 8px 10px; background: rgba(255, 255, 255, 0.06); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06); box-sizing: border-box;">
+          <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+            <div class="sidebar-user-avatar" id="avatarLetter" style="position: relative; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;">
               A
-            <!-- endif -->
-            <!-- Logout button shown on avatar when sidebar is collapsed -->
-            <button class="avatar-logout-btn" onclick="handleLogout()" title="Logout">
-              <i class="fas fa-sign-out-alt"></i>
-            </button>
+              <!-- Logout button shown on avatar when sidebar is collapsed -->
+              <button class="avatar-logout-btn" onclick="handleLogout()" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+            <div class="sidebar-user-info" onclick="openMyProfileModal()" style="cursor: pointer; min-width: 0; overflow: hidden;" title="Edit Profile">
+              <div class="sidebar-user-name" style="display:flex; align-items:center; gap:4px; font-weight:700; color:#f8fafc; font-size:0.83rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                <span class="user-name-slot">Administrator</span> <i class="fas fa-cog" style="font-size:0.7rem; color:#94a3b8;"></i>
+              </div>
+              <div class="sidebar-user-role" style="font-size:0.68rem; color:#94a3b8; font-weight:600;"><span class="user-role-slot">Admin</span></div>
+            </div>
           </div>
-          <div class="sidebar-user-info" onclick="openMyProfileModal()" style="cursor: pointer;" title="Edit Profile">
-            <div class="sidebar-user-name" style="display:flex; align-items:center; gap:4px; font-weight:800; color:#1e293b;"><span class="user-name-slot">Administrator</span> <i class="fas fa-cog" style="font-size:0.75rem; color:#94a3b8;"></i></div>
-            <div class="sidebar-user-role" style="font-size:0.7rem; color:#64748b; font-weight:700;"><span class="user-role-slot">Admin</span></div>
-          </div>
+          <button class="logout-btn" onclick="handleLogout()" title="Logout" style="background: rgba(239, 68, 68, 0.15); border: none; color: #ef4444; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1)';">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
         </div>
-        <button class="logout-btn" onclick="handleLogout()" title="Logout" style="background: rgba(239, 68, 68, 0.15); border: none; color: #ef4444; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1)';">
-          <i class="fas fa-sign-out-alt"></i>
-        </button>
-      </div>
 
-      <!-- Sidebar Branding Footer -->
-      <div class="sidebar-branding-footer" onclick="openAboutModal()" style="padding: 10px 14px; margin-top: auto; border-top: 1px solid rgba(226,232,240,0.8); font-size: 0.72rem; color: #64748b; text-align: center; background: rgba(248,250,252,0.6); cursor: pointer;" title="Click for About & System Features Guide">
-        <div style="font-weight: 800; color: #2563eb; font-size: 0.76rem;">© Mr.Rahul Script</div>
-        <div style="margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
-          <span style="color: #16a34a; font-weight: 700;"><i class="fab fa-whatsapp"></i> +917564948617</span>
-        </div>
-        <div style="margin-top: 2px;">
-          <span style="color: #4f46e5; font-weight: 600;"><i class="fas fa-envelope"></i> life.rahulg@gmail.com</span>
+        <!-- Sidebar Branding Footer -->
+        <div class="sidebar-branding-footer" onclick="openAboutModal()" style="padding: 6px 10px; border-radius: 8px; font-size: 0.68rem; color: #94a3b8; text-align: center; background: rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.04); cursor: pointer;" title="Click for About & System Features Guide">
+          <div style="font-weight: 800; color: #60a5fa; font-size: 0.72rem;">© Mr.Rahul Script</div>
+          <div style="margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+            <span style="color: #4ade80; font-weight: 700;"><i class="fab fa-whatsapp"></i> +917564948617</span>
+          </div>
+          <div style="margin-top: 1px;">
+            <span style="color: #818cf8; font-weight: 600;"><i class="fas fa-envelope"></i> life.rahulg@gmail.com</span>
+          </div>
         </div>
       </div>
     </nav>
@@ -1115,10 +1116,32 @@
             </div>
           </div>
 
-          <div class="content-card" style="grid-column: 1 / -1; border-color: #fca5a5;">
-            <div class="toolbar" style="background-color: #fff5f5;"><div style="font-weight: 700; color: #dc2626;"><i class="fas fa-trash-alt"></i> System Cleanup</div></div>
-            <div style="padding: 1.5rem;">
-              <button class="btn btn-danger" onclick="triggerLogsCleanup()"><i class="fas fa-eraser"></i> Delete All Audit Logs</button>
+          <div class="content-card" style="grid-column: 1 / -1; border: 1.5px solid #f87171; background: #fff5f5; border-radius: 12px; overflow: hidden;">
+            <div class="toolbar" style="background-color: #fee2e2; border-bottom: 1px solid #fca5a5; padding: 12px 20px;">
+              <div style="font-weight: 800; color: #991b1b; display: flex; align-items: center; gap: 8px; font-size: 0.95rem;">
+                <i class="fas fa-shield-alt text-danger"></i> Danger Zone — System Reset (Admin Only)
+              </div>
+            </div>
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: #ffffff; padding: 14px 18px; border-radius: 10px; border: 1px solid #fecaca;">
+                <div>
+                  <div style="font-weight: 800; color: #991b1b; font-size: 0.9rem;"><i class="fas fa-broom"></i> Clear All Complaints & Deliveries</div>
+                  <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">Permanently wipe all registered complaints, delivery history, and active case records. Consumer database stays untouched.</div>
+                </div>
+                <button class="btn btn-danger" onclick="clearAllComplaintsData()" style="background: #dc2626; color: #fff; font-weight: 700; padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap;">
+                  <i class="fas fa-trash-alt"></i> Clear Complaints Data
+                </button>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: #ffffff; padding: 14px 18px; border-radius: 10px; border: 1px solid #fecaca;">
+                <div>
+                  <div style="font-weight: 800; color: #b45309; font-size: 0.9rem;"><i class="fas fa-history"></i> Clear Audit Activity Logs</div>
+                  <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">Wipe all system activity logs and audit trails to free database storage.</div>
+                </div>
+                <button class="btn btn-warning" onclick="triggerLogsCleanup()" style="background: #f59e0b; color: #fff; font-weight: 700; padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap;">
+                  <i class="fas fa-eraser"></i> Wipe Audit Logs
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2492,8 +2515,11 @@
           <td><span class="badge badge-${r.status.toLowerCase().replace(' ', '-')}">${r.status}</span></td>
           <td style="white-space:nowrap;">
             ${callBtn}${waBtn}${mapBtn}${delBtnHtml}
-            <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;">
+            <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;" title="View Details">
               <i class="fas fa-eye"></i> View
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteComplaint(${r.id})" style="padding: 4px 8px; margin-left: 4px; font-weight: 700; background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important;" title="Delete Complaint">
+              <i class="fas fa-trash-alt"></i>
             </button>
           </td>
         `;
@@ -2657,23 +2683,75 @@
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
-        confirmButtonText: 'Yes, Delete'
+        confirmButtonText: 'Yes, Delete All Selected',
+        cancelButtonText: 'Cancel'
       }).then(r => {
         if (r.isConfirmed) {
           const fd = new FormData();
           fd.append('action', 'bulk_delete');
           fd.append('complaint_ids', checked.join(','));
-          showLoading(true);
+          showLoading(true, `Deleting ${checked.length} complaints...`);
           fetch('?', { method: 'POST', body: fd })
             .then(res => res.json())
             .then(res => {
               showLoading(false);
               if (res.success) {
-                showToast(`${checked.length} complaints deleted`);
-                loadComplaints(State.activePage);
+                showToast(`${checked.length} complaints deleted successfully`, 'success');
+                loadComplaints(State.activePage || 1);
                 document.getElementById('selectAll').checked = false;
                 updateBatchToolbar();
+                if (typeof loadDashboardCharts === 'function') loadDashboardCharts();
+                if (typeof loadSystemData === 'function') loadSystemData();
+              } else {
+                showToast(res.error || res.message || 'Failed to delete', 'error');
               }
+            })
+            .catch(() => {
+              showLoading(false);
+              showToast('Network error while deleting', 'error');
+            });
+        }
+      });
+    }
+
+    function clearAllComplaintsData() {
+      if (!State.user || State.user.role !== 'Admin') {
+        showToast('Only Administrator can clear complaints data', 'error');
+        return;
+      }
+      Swal.fire({
+        title: 'Clear All Complaints & Deliveries?',
+        text: 'DANGER: This will permanently delete ALL active and historical complaints from the database! This action cannot be reversed.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Yes, Wipe All Complaints',
+        cancelButtonText: 'Cancel'
+      }).then(r => {
+        if (r.isConfirmed) {
+          showLoading(true, 'Wiping Complaints Data...');
+          fetch('?action=clear_complaints_data', { method: 'POST' })
+            .then(res => res.json())
+            .then(res => {
+              showLoading(false);
+              if (res.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Complaints Cleared!',
+                  text: 'All complaints and delivery records have been wiped successfully.',
+                  timer: 2000,
+                  showConfirmButton: false
+                });
+                loadComplaints(1);
+                if (typeof loadDashboardCharts === 'function') loadDashboardCharts();
+                if (typeof loadSystemData === 'function') loadSystemData();
+              } else {
+                showToast(res.message || res.error || 'Failed to clear data', 'error');
+              }
+            })
+            .catch(err => {
+              showLoading(false);
+              showToast('Error connecting to server', 'error');
             });
         }
       });

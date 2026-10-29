@@ -741,16 +741,53 @@ async function handleSupabaseAction(urlStr, options) {
       return { success: true, message: 'Complaint updated' };
     }
 
+    case 'bulk_delete': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const rawIds = postData.complaint_ids || params.get('complaint_ids') || postData.ids || '';
+      const ids = (typeof rawIds === 'string' ? rawIds.split(',') : (Array.isArray(rawIds) ? rawIds : [rawIds]))
+        .map(x => parseInt(String(x).trim()))
+        .filter(x => !isNaN(x) && x > 0);
+
+      if (ids.length === 0) return { success: false, message: 'No complaint IDs selected' };
+
+      const { error } = await db.from('gas_complaints').delete().in('id', ids);
+      if (error) {
+        await db.from('gas_complaints').update({
+          deleted: 1,
+          deleted_at: new Date().toISOString(),
+          deleted_by: currentUser?.name || 'Admin'
+        }).in('id', ids);
+      }
+      return { success: true, message: `${ids.length} complaints deleted successfully` };
+    }
+
     case 'delete_complaint': {
       if (!db) return { success: false, message: 'Database offline' };
-      const id = params.get('id') || postData.id;
-      const { error } = await db.from('gas_complaints').update({
-        deleted: 1,
-        deleted_at: new Date().toISOString(),
-        deleted_by: currentUser?.name || 'Admin'
-      }).eq('id', id);
-      if (error) throw error;
+      const id = parseInt(params.get('id') || postData.id);
+      if (!id) return { success: false, message: 'Invalid complaint ID' };
+
+      const { error } = await db.from('gas_complaints').delete().eq('id', id);
+      if (error) {
+        await db.from('gas_complaints').update({
+          deleted: 1,
+          deleted_at: new Date().toISOString(),
+          deleted_by: currentUser?.name || 'Admin'
+        }).eq('id', id);
+      }
       return { success: true, message: 'Complaint deleted' };
+    }
+
+    case 'clear_complaints_data': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const { error } = await db.from('gas_complaints').delete().gt('id', 0);
+      if (error) {
+        await db.from('gas_complaints').update({
+          deleted: 1,
+          deleted_at: new Date().toISOString(),
+          deleted_by: currentUser?.name || 'Admin'
+        }).gt('id', 0);
+      }
+      return { success: true, message: 'All complaint & delivery data cleared successfully' };
     }
 
     case 'assign_vendor': {
