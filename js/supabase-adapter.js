@@ -524,14 +524,44 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'get_consumer_by_mobile_or_number': {
       if (!db) return { success: false, message: 'Database offline' };
-      const term = (params.get('term') || postData.term || '').trim();
-      if (!term) return { success: false, message: 'No search term' };
+      const rawTerm = (params.get('query') || params.get('term') || params.get('q') || postData.query || postData.term || postData.q || '').trim();
+      if (!rawTerm) return { success: false, message: 'No search term' };
 
-      const { data, error } = await db
+      let clean = rawTerm.replace(/^['"\s]+|['"\s]+$/g, '');
+      let mob10 = clean;
+      if (mob10.length > 10 && (mob10.startsWith('91') || mob10.startsWith('+91'))) {
+        mob10 = mob10.replace(/^\+?91/, '');
+      } else if (mob10.length > 10 && mob10.startsWith('0')) {
+        mob10 = mob10.substring(1);
+      }
+
+      let orFilters = [
+        `consumer_number.eq.${clean}`,
+        `mobile.eq.${clean}`
+      ];
+      if (mob10 !== clean) {
+        orFilters.push(`mobile.eq.${mob10}`);
+        orFilters.push(`consumer_number.eq.${mob10}`);
+      }
+
+      let { data, error } = await db
         .from('gas_consumers')
         .select('*')
-        .or(`consumer_number.eq.${term},mobile.eq.${term}`)
+        .or(orFilters.join(','))
         .limit(1);
+
+      // If not found and clean is at least 4 chars, fallback to partial search
+      if ((!data || data.length === 0) && clean.length >= 4) {
+        const fallback = await db
+          .from('gas_consumers')
+          .select('*')
+          .or(`consumer_number.ilike.%${clean}%,mobile.ilike.%${clean}%`)
+          .limit(1);
+        if (fallback.data && fallback.data.length > 0) {
+          data = fallback.data;
+          error = fallback.error;
+        }
+      }
 
       if (error || !data || data.length === 0) {
         return { success: false, message: 'Consumer not found' };
@@ -540,7 +570,7 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'get_consumer_history': {
-      if (!db) return { success: true, history: [] };
+      if (!db) return { success: true, count: 0, complaints: [], history: [] };
       const mobile = params.get('mobile') || postData.mobile;
       const { data, error } = await db
         .from('gas_complaints')
@@ -548,7 +578,8 @@ async function handleSupabaseAction(urlStr, options) {
         .eq('mobile', mobile)
         .order('id', { ascending: false });
       if (error) throw error;
-      return { success: true, history: data || [] };
+      const rows = data || [];
+      return { success: true, count: rows.length, complaints: rows, history: rows };
     }
 
     case 'get_vendors': {

@@ -1188,17 +1188,23 @@
       <div class="modal-body">
         <input type="hidden" id="c_id">
         <div class="form-group">
-          <label>Consumer Number</label>
-          <input type="text" id="c_no" class="form-control" placeholder="Consumer unique account code" onblur="lookupConsumer('no')">
+          <label>Consumer Number <small style="color: #64748b; font-weight: normal;">(Auto-fetches details)</small></label>
+          <div style="position: relative;">
+            <input type="text" id="c_no" class="form-control" placeholder="Enter Consumer No (e.g. 609317)" oninput="handleConsumerInput('no')" onblur="lookupConsumer('no')" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupConsumer('no');}">
+            <span id="c_no_spinner" style="display:none; position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#3b82f6;"><i class="fas fa-spinner fa-spin"></i></span>
+          </div>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="form-group">
             <label>Consumer Name *</label>
-            <input type="text" id="c_name" class="form-control" required>
+            <input type="text" id="c_name" class="form-control" required placeholder="Consumer name">
           </div>
           <div class="form-group">
-            <label>Mobile Number *</label>
-            <input type="text" id="c_mob" class="form-control" required maxlength="10" onblur="lookupConsumer('mob')">
+            <label>Mobile Number * <small style="color: #64748b; font-weight: normal;">(Auto-fetches on 10 digits)</small></label>
+            <div style="position: relative;">
+              <input type="text" id="c_mob" class="form-control" required maxlength="10" placeholder="10-digit mobile" oninput="handleConsumerInput('mob')" onblur="lookupConsumer('mob')" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupConsumer('mob');}">
+              <span id="c_mob_spinner" style="display:none; position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#3b82f6;"><i class="fas fa-spinner fa-spin"></i></span>
+            </div>
           </div>
         </div>
         <div class="form-group">
@@ -2503,6 +2509,11 @@
         showToast('Vendors are not permitted to add complaints.', 'error');
         return;
       }
+      lastLookedUpVal = '';
+      const s1 = document.getElementById('c_no_spinner');
+      const s2 = document.getElementById('c_mob_spinner');
+      if (s1) s1.style.display = 'none';
+      if (s2) s2.style.display = 'none';
       document.getElementById('c_id').value = '';
       document.getElementById('c_no').value = '';
       document.getElementById('c_name').value = '';
@@ -5578,40 +5589,79 @@
     }
 
     // Auto-fill logic when consumer number or mobile number is entered
+    let consumerLookupTimer = null;
+    let lastLookedUpVal = '';
+
+    function handleConsumerInput(field) {
+      if (document.getElementById('c_id').value) return; // Skip if editing
+      clearTimeout(consumerLookupTimer);
+      if (field === 'mob') {
+        const val = document.getElementById('c_mob').value.trim().replace(/\D/g, '');
+        if (val.length === 10) {
+          lookupConsumer('mob');
+        }
+      } else if (field === 'no') {
+        const val = document.getElementById('c_no').value.trim();
+        if (val.length >= 4) {
+          consumerLookupTimer = setTimeout(() => {
+            lookupConsumer('no');
+          }, 350);
+        }
+      }
+    }
+
     function lookupConsumer(field) {
       let val = '';
+      const spinner = document.getElementById(field === 'no' ? 'c_no_spinner' : 'c_mob_spinner');
       if (field === 'no') {
         val = document.getElementById('c_no').value.trim();
       } else if (field === 'mob') {
         val = document.getElementById('c_mob').value.trim();
       }
-      if (!val) return;
+      if (!val || val === lastLookedUpVal) return;
 
       // Skip if editing existing complaint
       if (document.getElementById('c_id').value) return;
 
+      if (spinner) spinner.style.display = 'block';
+
       fetch(`?action=get_consumer_by_mobile_or_number&query=${encodeURIComponent(val)}`)
         .then(res => res.json())
         .then(res => {
+          if (spinner) spinner.style.display = 'none';
           if (res.success && res.consumer) {
+            lastLookedUpVal = val;
             const cons = res.consumer;
             if (cons.consumer_number) document.getElementById('c_no').value = cons.consumer_number;
             if (cons.consumer_name) document.getElementById('c_name').value = cons.consumer_name;
             if (cons.mobile) document.getElementById('c_mob').value = cons.mobile;
             if (cons.address) {
               let fullAddr = cons.address;
-              if (cons.area) {
+              if (cons.area && !fullAddr.toLowerCase().includes(cons.area.toLowerCase())) {
                 fullAddr += (fullAddr.endsWith(',') || fullAddr.endsWith(' ') ? '' : ', ') + cons.area;
               }
               document.getElementById('c_addr').value = fullAddr;
             }
-            showToast('Consumer details autofilled!', 'success');
+
+            // Green highlight animation to clearly indicate successful autofill
+            ['c_no', 'c_name', 'c_mob', 'c_addr'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) {
+                el.style.borderColor = '#10b981';
+                el.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.2)';
+                setTimeout(() => {
+                  el.style.borderColor = '';
+                  el.style.boxShadow = '';
+                }, 2000);
+              }
+            });
+
+            showToast(`Consumer Found: ${cons.consumer_name}`, 'success');
           }
-          // Always run consumer history checks to warn operator of prior complaints
           checkConsumerHistory();
         })
         .catch(() => {
-          // Fallback to history check on failure
+          if (spinner) spinner.style.display = 'none';
           checkConsumerHistory();
         });
     }
