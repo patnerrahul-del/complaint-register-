@@ -348,7 +348,7 @@
         </select>
         <div class="btn-group" id="headerActions">
           
-            <button class="btn btn-primary" onclick="openAddComplaintModal()">
+            <button class="btn btn-primary" id="headerAddComplaintBtn" onclick="openAddComplaintModal()">
               <i class="fas fa-plus"></i> Add Complaint
             </button>
           <!-- logo else -->
@@ -552,7 +552,7 @@
               </div>
               <div id="batchActions" style="display: none; gap: 0.5rem; align-items: center;">
                 <span id="batchCount" style="font-size: 0.8rem; font-weight: 700; margin-right: 0.5rem;">0 Selected</span>
-                <button class="btn btn-warning btn-sm" onclick="openBulkAssign()"><i class="fas fa-truck"></i> Assign Vendor</button>
+                <button class="btn btn-warning btn-sm" id="bulkAssignBtn" onclick="openBulkAssign()"><i class="fas fa-truck"></i> Assign Vendor</button>
                 <button class="btn btn-success btn-sm" onclick="bulkMarkDelivered()"><i class="fas fa-check"></i> Bulk Deliver</button>
                 <button class="btn btn-sm" id="bulkDeleteBtn" style="background:#fee2e2;color:#991b1b;border:none;font-weight:700;" onclick="bulkDeleteSelected()"><i class="fas fa-trash"></i> Bulk Delete</button>
               </div>
@@ -1888,6 +1888,8 @@
 
         const sidebarAdmin = document.getElementById('sidebarAdminItems');
         if (sidebarAdmin) sidebarAdmin.style.display = isDelivery ? 'none' : 'block';
+        const addCmpBtn = document.getElementById('headerAddComplaintBtn');
+        if (addCmpBtn) addCmpBtn.style.display = isDelivery ? 'none' : 'inline-flex';
 
         loadSystemData();
         const hash = window.location.hash.substring(1);
@@ -2499,6 +2501,9 @@
         const callBtn = cleanMobile ? `<button type="button" onclick="promptCallConsumer('${cleanMobile}', '${escapeHtml(r.consumer_name)}')" class="btn btn-outline btn-sm" style="color:#2563eb; font-weight:700; padding:2px 8px; margin-right:4px;" title="📞 ${cleanMobile}"><i class="fas fa-phone-alt"></i></button>` : '';
         const waBtn = `<button onclick="shareComplaintViaWhatsApp(${r.id}, '${cleanMobile}')" class="btn btn-outline btn-sm" style="color:#16a34a; font-weight:700; padding:2px 8px; margin-right:4px;" title="Send & Copy to WhatsApp"><i class="fab fa-whatsapp"></i></button>`;
         const mapBtn = r.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}" target="_blank" class="btn btn-outline btn-sm" style="color:#ea580c; font-weight:700; padding:2px 8px; margin-right:4px;" title="Google Maps Navigation"><i class="fas fa-map-marker-alt"></i></a>` : '';
+        const deleteBtn = (State.user && State.user.role === 'Admin')
+          ? `<button class="btn btn-danger btn-sm" onclick="deleteComplaint(${r.id})" style="padding: 4px 8px; margin-left: 4px; font-weight: 700; background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important;" title="Delete Complaint"><i class="fas fa-trash-alt"></i></button>`
+          : '';
 
         tr.innerHTML = `
           <td>
@@ -2538,9 +2543,7 @@
             <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;" title="View Details">
               <i class="fas fa-eye"></i> View
             </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteComplaint(${r.id})" style="padding: 4px 8px; margin-left: 4px; font-weight: 700; background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important;" title="Delete Complaint">
-              <i class="fas fa-trash-alt"></i>
-            </button>
+            ${deleteBtn}
           </td>
         `;
         tbody.appendChild(tr);
@@ -2580,6 +2583,10 @@
         const bulkDel = document.getElementById('bulkDeleteBtn');
         if (bulkDel) {
           bulkDel.style.display = (State.user.role === 'Admin') ? 'inline-block' : 'none';
+        }
+        const bulkAssign = document.getElementById('bulkAssignBtn');
+        if (bulkAssign) {
+          bulkAssign.style.display = (State.user.role === 'Admin') ? 'inline-block' : 'none';
         }
       } else {
         bar.style.display = 'none';

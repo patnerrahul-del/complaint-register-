@@ -50,6 +50,57 @@ window.fetch = async function(url, options = {}) {
   return _originalFetch.apply(this, arguments);
 };
 
+// Resolve Vendor identity if logged in as a Vendor/Delivery Boy
+async function resolveVendorFilter(db, user) {
+  if (!user) return null;
+  const role = (user.role || '').toLowerCase();
+  if (role !== 'vendor' && role !== 'delivery') return null;
+  const cleanMob = (user.mobile || user.username || '').replace(/\D/g, '');
+  const userName = (user.name || '').trim();
+
+  try {
+    let vQuery = db.from('gas_vendors').select('id, name, mobile, code');
+    if (cleanMob) {
+      vQuery = vQuery.or(`mobile.eq.${cleanMob},code.eq.${user.username},name.ilike.%${userName}%`);
+    } else if (userName) {
+      vQuery = vQuery.ilike('name', `%${userName}%`);
+    }
+    const { data: vList } = await vQuery.limit(1);
+    if (vList && vList.length > 0) {
+      return {
+        id: vList[0].id,
+        name: vList[0].name || userName,
+        mobile: vList[0].mobile
+      };
+    }
+  } catch (e) {
+    console.warn('Vendor lookup error:', e);
+  }
+  return { id: null, name: userName };
+}
+
+function applyVendorFilterToQuery(query, vFilter) {
+  if (!vFilter) return query;
+  if (vFilter.id && vFilter.name) {
+    return query.or(`vendor_id.eq.${vFilter.id},vendor.ilike.%${vFilter.name}%`);
+  } else if (vFilter.id) {
+    return query.eq('vendor_id', vFilter.id);
+  } else if (vFilter.name) {
+    return query.ilike('vendor', `%${vFilter.name}%`);
+  }
+  return query;
+}
+
+function complaintMatchesVendor(c, vFilter) {
+  if (!vFilter) return true;
+  if (vFilter.id && String(c.vendor_id) === String(vFilter.id)) return true;
+  if (vFilter.name && c.vendor && (
+    c.vendor.toLowerCase().includes(vFilter.name.toLowerCase()) || 
+    vFilter.name.toLowerCase().includes(c.vendor.toLowerCase())
+  )) return true;
+  return false;
+}
+
 // Main Action Dispatcher
 async function handleSupabaseAction(urlStr, options) {
   const db = getDbClient();
@@ -125,6 +176,7 @@ async function handleSupabaseAction(urlStr, options) {
         username: u.username,
         name: u.name,
         role: u.role || 'Employee',
+        mobile: u.mobile || '',
         permissions: u.permissions || '*',
         branch_id: u.branch_id || 1
       };
@@ -176,7 +228,11 @@ async function handleSupabaseAction(urlStr, options) {
 
       const sources = (config['ComplaintSources'] || 'Office Phone,Delivery,Leakage,District Office,MO').split(',').map(s => s.trim()).filter(Boolean);
 
-      const allComps = complaintsRes.data || [];
+      const vFilter = await resolveVendorFilter(db, currentUser);
+      let allComps = complaintsRes.data || [];
+      if (vFilter) {
+        allComps = allComps.filter(c => complaintMatchesVendor(c, vFilter));
+      }
       const todayStr = new Date().toISOString().slice(0, 10);
       const stats = {
         total: allComps.length,
@@ -220,7 +276,9 @@ async function handleSupabaseAction(urlStr, options) {
       const limit = 50;
       const offset = (page - 1) * limit;
 
+      const vFilter = await resolveVendorFilter(db, currentUser);
       let query = db.from('gas_complaints').select('*', { count: 'exact' }).eq('deleted', 0);
+      query = applyVendorFilterToQuery(query, vFilter);
 
       if (status && status !== 'All') {
         if (status === 'Active') {
@@ -241,9 +299,12 @@ async function handleSupabaseAction(urlStr, options) {
 
       query = query.order('id', { ascending: false }).range(offset, offset + limit - 1);
 
+      let compStatsQuery = db.from('gas_complaints').select('status, created_at, vendor, vendor_id').eq('deleted', 0);
+      compStatsQuery = applyVendorFilterToQuery(compStatsQuery, vFilter);
+
       const [queryRes, allCompsRes] = await Promise.all([
         query,
-        db.from('gas_complaints').select('status, created_at').eq('deleted', 0)
+        compStatsQuery
       ]);
 
       const allList = allCompsRes.data || [];
@@ -272,7 +333,9 @@ async function handleSupabaseAction(urlStr, options) {
       if (!db) return { success: true, rows: [], history: [] };
       const status = params.get('status') || 'Delivered';
       const search = params.get('search') || '';
+      const vFilter = await resolveVendorFilter(db, currentUser);
       let query = db.from('gas_complaints').select('*').eq('deleted', 0);
+      query = applyVendorFilterToQuery(query, vFilter);
       if (status && status !== 'All') {
         query = query.eq('status', status);
       }
@@ -329,19 +392,23 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'get_vendor_reports': {
       if (!db) return { success: true, report: [] };
+      const vFilter = await resolveVendorFilter(db, currentUser);
       const [vendorsRes, compsRes] = await Promise.all([
         db.from('gas_vendors').select('*').order('name', { ascending: true }),
         db.from('gas_complaints').select('*').eq('deleted', 0).neq('status', 'Delivered').neq('status', 'Resolved')
       ]);
       const vendors = vendorsRes.data || [];
       const comps = compsRes.data || [];
-      const report = vendors.map(v => {
+      let report = vendors.map(v => {
         const vComps = comps.filter(c => c.vendor_id === v.id || (c.vendor && c.vendor.toLowerCase() === v.name.toLowerCase()));
         return {
           vendor: v,
           complaints: vComps
         };
       });
+      if (vFilter) {
+        report = report.filter(r => (vFilter.id && r.vendor.id === vFilter.id) || (vFilter.name && r.vendor.name.toLowerCase().includes(vFilter.name.toLowerCase())));
+      }
       return { success: true, report };
     }
 
@@ -359,13 +426,17 @@ async function handleSupabaseAction(urlStr, options) {
         };
       }
 
+      const vFilter = await resolveVendorFilter(db, currentUser);
       const [allComplaints, vendorsRes, consumersCount] = await Promise.all([
         db.from('gas_complaints').select('*').eq('deleted', 0),
         db.from('gas_vendors').select('id, name'),
         db.from('gas_consumers').select('id', { count: 'exact', head: true })
       ]);
 
-      const list = allComplaints.data || [];
+      let list = allComplaints.data || [];
+      if (vFilter) {
+        list = list.filter(c => complaintMatchesVendor(c, vFilter));
+      }
       const vendors = vendorsRes.data || [];
       const stats = {
         total: list.length,
@@ -911,18 +982,25 @@ async function handleSupabaseAction(urlStr, options) {
       return { success: true, message: 'All complaint & delivery data cleared successfully' };
     }
 
+    case 'bulk_assign_vendor':
     case 'assign_vendor': {
       if (!db) return { success: false, message: 'Database offline' };
-      const id = postData.id || params.get('id');
-      const vendorId = postData.vendor_id;
+      const vendorId = postData.vendor_id || null;
       const vendorName = postData.vendor_name || '';
+      let ids = [];
+      if (postData.complaint_ids) {
+        ids = String(postData.complaint_ids).split(',').map(x => x.trim()).filter(Boolean);
+      } else if (postData.id || params.get('id')) {
+        ids = [postData.id || params.get('id')];
+      }
+      if (ids.length === 0) return { success: false, message: 'No complaint selected' };
 
       const { error } = await db.from('gas_complaints').update({
-        vendor_id: vendorId || null,
+        vendor_id: vendorId,
         vendor: vendorName,
         status: 'Assigned',
         updated_at: new Date().toISOString()
-      }).eq('id', id);
+      }).in('id', ids);
       if (error) throw error;
       return { success: true, message: 'Vendor assigned successfully' };
     }
