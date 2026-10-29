@@ -50,6 +50,20 @@ window.fetch = async function(url, options = {}) {
   return _originalFetch.apply(this, arguments);
 };
 
+// Cached vendor lookup to eliminate redundant DB calls
+let _cachedVendorFilter = null;
+let _cachedVendorFilterKey = '';
+
+// In-memory cache for complaint stats to speed up queries
+let _cachedStats = null;
+let _cachedStatsTime = 0;
+let _cachedStatsVendorKey = '';
+
+function invalidateStatsCache() {
+  _cachedStats = null;
+  _cachedStatsTime = 0;
+}
+
 // Resolve Vendor identity if logged in as a Vendor/Delivery Boy
 async function resolveVendorFilter(db, user) {
   if (!user) return null;
@@ -57,6 +71,11 @@ async function resolveVendorFilter(db, user) {
   if (role !== 'vendor' && role !== 'delivery') return null;
   const cleanMob = (user.mobile || user.username || '').replace(/\D/g, '');
   const userName = (user.name || '').trim();
+  const cacheKey = `${cleanMob}_${userName}`;
+
+  if (_cachedVendorFilter && _cachedVendorFilterKey === cacheKey) {
+    return _cachedVendorFilter;
+  }
 
   try {
     let vQuery = db.from('gas_vendors').select('id, name, mobile, code');
@@ -67,16 +86,20 @@ async function resolveVendorFilter(db, user) {
     }
     const { data: vList } = await vQuery.limit(1);
     if (vList && vList.length > 0) {
-      return {
+      _cachedVendorFilter = {
         id: vList[0].id,
         name: vList[0].name || userName,
         mobile: vList[0].mobile
       };
+      _cachedVendorFilterKey = cacheKey;
+      return _cachedVendorFilter;
     }
   } catch (e) {
     console.warn('Vendor lookup error:', e);
   }
-  return { id: null, name: userName };
+  _cachedVendorFilter = { id: null, name: userName };
+  _cachedVendorFilterKey = cacheKey;
+  return _cachedVendorFilter;
 }
 
 function applyVendorFilterToQuery(query, vFilter) {
@@ -319,23 +342,39 @@ async function handleSupabaseAction(urlStr, options) {
 
       query = query.order('id', { ascending: false }).range(offset, offset + limit - 1);
 
-      let compStatsQuery = db.from('gas_complaints').select('status, created_at, vendor, vendor_id').eq('deleted', 0);
-      compStatsQuery = applyVendorFilterToQuery(compStatsQuery, vFilter);
+      const vendorKey = vFilter ? `${vFilter.id || ''}_${vFilter.name || ''}` : 'admin';
+      const now = Date.now();
+      let statsPromise;
+      if (_cachedStats && (now - _cachedStatsTime < 15000) && _cachedStatsVendorKey === vendorKey) {
+        statsPromise = Promise.resolve({ data: null, isCached: true });
+      } else {
+        let compStatsQuery = db.from('gas_complaints').select('status, created_at, vendor, vendor_id').eq('deleted', 0);
+        compStatsQuery = applyVendorFilterToQuery(compStatsQuery, vFilter);
+        statsPromise = compStatsQuery;
+      }
 
       const [queryRes, allCompsRes] = await Promise.all([
         query,
-        compStatsQuery
+        statsPromise
       ]);
 
-      const allList = allCompsRes.data || [];
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const stats = {
-        total: allList.length,
-        pending: allList.filter(c => c.status === 'Pending').length,
-        inProgress: allList.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length,
-        delivered: allList.filter(c => c.status === 'Delivered' || c.status === 'Resolved').length,
-        todayNew: allList.filter(c => (c.created_at || '').startsWith(todayStr)).length
-      };
+      let stats;
+      if (allCompsRes && allCompsRes.isCached && _cachedStats) {
+        stats = _cachedStats;
+      } else {
+        const allList = (allCompsRes && allCompsRes.data) || [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        stats = {
+          total: allList.length,
+          pending: allList.filter(c => c.status === 'Pending').length,
+          inProgress: allList.filter(c => c.status === 'Assigned' || c.status === 'In Progress').length,
+          delivered: allList.filter(c => c.status === 'Delivered' || c.status === 'Resolved').length,
+          todayNew: allList.filter(c => (c.created_at || '').startsWith(todayStr)).length
+        };
+        _cachedStats = stats;
+        _cachedStatsTime = now;
+        _cachedStatsVendorKey = vendorKey;
+      }
 
       const rows = queryRes.data || [];
       return {
@@ -971,6 +1010,8 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'add_complaint': {
+      invalidateStatsCache();
+      invalidateStatsCache();
       if (!db) return { success: false, message: 'Database offline' };
       const complaintData = {
         consumer_number: postData.consumer_number || '',
@@ -991,6 +1032,8 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'update_complaint': {
+      invalidateStatsCache();
+      invalidateStatsCache();
       if (!db) return { success: false, message: 'Database offline' };
       const id = postData.id;
       const updateData = {
@@ -1010,6 +1053,8 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'bulk_delete': {
+      invalidateStatsCache();
+      invalidateStatsCache();
       if (!db) return { success: false, message: 'Database offline' };
       const rawIds = postData.complaint_ids || params.get('complaint_ids') || postData.ids || '';
       const ids = (typeof rawIds === 'string' ? rawIds.split(',') : (Array.isArray(rawIds) ? rawIds : [rawIds]))
@@ -1030,6 +1075,8 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'delete_complaint': {
+      invalidateStatsCache();
+      invalidateStatsCache();
       if (!db) return { success: false, message: 'Database offline' };
       const id = parseInt(params.get('id') || postData.id);
       if (!id) return { success: false, message: 'Invalid complaint ID' };
@@ -1059,6 +1106,8 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
     case 'bulk_assign_vendor':
+      invalidateStatsCache();
+      invalidateStatsCache();
     case 'assign_vendor': {
       if (!db) return { success: false, message: 'Database offline' };
       const vendorId = postData.vendor_id || null;
@@ -1082,6 +1131,8 @@ async function handleSupabaseAction(urlStr, options) {
     }
 
         case 'reopen_complaint': {
+        invalidateStatsCache();
+        invalidateStatsCache();
       if (!db) return { success: false, message: 'Database offline' };
       const id = postData.id || params.get('id');
       const reason = postData.reason || '';

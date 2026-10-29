@@ -15,10 +15,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- SweetAlert2 & Chart.js & SheetJS -->
+  <!-- SweetAlert2 & Chart.js (Optimized with defer, XLSX lazy-loaded on-demand) -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Supabase Official JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -6571,7 +6570,31 @@
       if (file) processConsumerFile(file);
     }
 
-    function processConsumerFile(file) {
+    async function ensureXlsxLoaded() {
+      if (window.XLSX) return window.XLSX;
+      if (typeof showLoading === 'function') showLoading(true);
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        s.onload = () => {
+          if (typeof showLoading === 'function') showLoading(false);
+          resolve(window.XLSX);
+        };
+        s.onerror = (err) => {
+          if (typeof showLoading === 'function') showLoading(false);
+          reject(err);
+        };
+        document.head.appendChild(s);
+      });
+    }
+
+    async function processConsumerFile(file) {
+      try {
+        await ensureXlsxLoaded();
+      } catch (err) {
+        showToast('Failed to load Excel parser library', 'error');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
@@ -7280,12 +7303,7 @@
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
       return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
     }
-  </script>
-</body>
-</html>
-  </script>
 
-  <script>
     // Boot check
     window.addEventListener('DOMContentLoaded', () => {
       checkAuth();
