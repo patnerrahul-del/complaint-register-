@@ -352,9 +352,14 @@
               <i class="fas fa-plus"></i> Add Complaint
             </button>
           <!-- logo else -->
-            <button class="btn btn-primary" onclick="optimizeVendorRoute()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
-              <i class="fas fa-route"></i> 🗺️ Route Optimizer
-            </button>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-outline" onclick="openChangePasswordModal()" style="background:#fff; border:1px solid #cbd5e1; font-weight:700; color:#1e293b; box-shadow:0 2px 4px rgba(0,0,0,0.04);">
+                <i class="fas fa-key" style="color:#f59e0b;"></i> Change Password
+              </button>
+              <button class="btn btn-primary" onclick="optimizeVendorRoute()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                <i class="fas fa-route"></i> 🗺️ Route Optimizer
+              </button>
+            </div>
           <!-- endif -->
           <button class="btn btn-outline" onclick="triggerCsvExport()">
             <i class="fas fa-file-csv"></i> CSV
@@ -451,6 +456,7 @@
               <button class="dashboard-action" onclick="switchView('active-registry', null)"><i class="fas fa-truck-loading" style="color:#06b6d4;"></i><span><b>📋 My Active Deliveries</b><small>View pending delivery list & action buttons</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('reports', null)"><i class="fas fa-file-invoice" style="color:#3b82f6;"></i><span><b>📜 Trip Manifest Sheet</b><small>View & print today's trip dispatch sheet</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('history', null)"><i class="fas fa-history" style="color:#8b5cf6;"></i><span><b>✅ Delivery History</b><small>View all past completed deliveries</small></span><i class="fas fa-chevron-right"></i></button>
+              <button class="dashboard-action" onclick="openChangePasswordModal()"><i class="fas fa-key" style="color:#f59e0b;"></i><span><b>🔑 Change Password</b><small>Apna login password badlein</small></span><i class="fas fa-chevron-right"></i></button>
             </div>
           </div>
         </div>
@@ -1428,7 +1434,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="form-group">
             <label>Mobile Number</label>
-            <input type="text" id="u_mobile" class="form-control">
+            <input type="text" id="u_mobile" class="form-control" oninput="onEmployeeMobileInput(this.value)" placeholder="10-digit mobile number">
           </div>
           <div class="form-group">
             <label>Role</label>
@@ -1441,11 +1447,14 @@
         </div>
         
         <!-- Vendor Select Block for Auto-Fill -->
-        <div class="form-group" id="vendorSelectBlock" style="display: none; margin-bottom: 1rem; background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
+        <div class="form-group" id="vendorSelectBlock" style="display: none; margin-bottom: 1rem; background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
           <label style="color: #166534; font-weight: 700;"><i class="fas fa-truck"></i> Select Vendor from Directory (Auto-Fill)</label>
           <select id="u_vendor_select" class="form-control" onchange="onVendorDropdownSelect(this.value)" style="border-color: #86efac; font-weight: 600;">
             <option value="">-- Choose Vendor from Directory --</option>
           </select>
+          <div style="font-size:0.75rem; color:#15803d; margin-top:8px; line-height:1.4; display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-shield-alt" style="font-size:0.9rem;"></i> <span><b>Vendor Login Rule:</b> ID (Username) & Password automatic Mobile Number banega. Login karne ke baad vendor apna password badal sakta hai.</span>
+          </div>
         </div>
         
         <div class="form-group" id="empBranchSelectBlock" style="display: none; margin-bottom: 1rem;">
@@ -4925,17 +4934,30 @@
       }
     }
 
+    function onEmployeeMobileInput(val) {
+      const role = document.getElementById('u_role').value;
+      const isNew = !document.getElementById('u_id').value;
+      if (role === 'Vendor' && isNew) {
+        const clean = val.replace(/\D/g, '');
+        if (clean) {
+          document.getElementById('u_uname').value = clean;
+          document.getElementById('u_pw').value = clean;
+        }
+      }
+    }
+
     function onVendorDropdownSelect(vId) {
       if (!vId || !State.vendors) return;
       const v = State.vendors.find(x => String(x.id) === String(vId));
       if (v) {
+        const cleanMobile = (v.mobile || '').replace(/\D/g, '') || v.code || '';
         document.getElementById('u_name').value = v.name || '';
-        document.getElementById('u_uname').value = v.code || v.mobile || v.name || '';
         document.getElementById('u_mobile').value = v.mobile || '';
+        document.getElementById('u_uname').value = cleanMobile || v.name || '';
         if (!document.getElementById('u_id').value) {
-          document.getElementById('u_pw').value = v.code || v.mobile || '1234';
+          document.getElementById('u_pw').value = cleanMobile || '1234';
         }
-        showToast('Vendor details auto-filled!');
+        showToast('Vendor auto-filled! ID & Password = ' + cleanMobile);
       }
     }
 
@@ -4947,6 +4969,12 @@
       if (vendorBlock) {
         if (role === 'Vendor') {
           vendorBlock.style.display = 'block';
+          const isNew = !document.getElementById('u_id').value;
+          const curMob = (document.getElementById('u_mobile').value || '').replace(/\D/g, '');
+          if (isNew && curMob) {
+            document.getElementById('u_uname').value = curMob;
+            document.getElementById('u_pw').value = curMob;
+          }
           if (!State.vendors || State.vendors.length === 0) {
             fetch('?action=get_vendors').then(r => r.json()).then(res => {
               if (res.success) {
@@ -4966,10 +4994,18 @@
     function submitEmployeeForm() {
       const id = document.getElementById('u_id').value;
       const name = document.getElementById('u_name').value.trim();
-      const uname = document.getElementById('u_uname').value.trim();
+      let uname = document.getElementById('u_uname').value.trim();
       const mobile = document.getElementById('u_mobile').value.trim();
-      const pw = document.getElementById('u_pw').value;
+      let pw = document.getElementById('u_pw').value;
       const role = document.getElementById('u_role').value;
+
+      if (role === 'Vendor') {
+        const cleanMob = mobile.replace(/\D/g, '');
+        if (cleanMob) {
+          if (!uname) uname = cleanMob;
+          if (!pw && !id) pw = cleanMob;
+        }
+      }
       const photo = State.tempEmployeeLogoData || 'default-photo.png';
       const branchId = document.getElementById('u_branch_id') ? document.getElementById('u_branch_id').value : '1';
       
@@ -6580,6 +6616,88 @@
     }
 
     // Escape HTML strings to prevent cross site scripting (XSS)
+    
+    // =========================================================================
+    // VENDOR / USER CHANGE PASSWORD SYSTEM
+    // =========================================================================
+    function openChangePasswordModal() {
+      const currentUser = State.user || {};
+      const userDisplay = currentUser.name || 'User';
+      const userLogin = currentUser.username || currentUser.mobile || 'Account';
+
+      Swal.fire({
+        title: '🔑 Change Password',
+        html: `
+          <div style="text-align:left;font-size:0.85rem;color:#475569;margin-bottom:1rem;background:#f8fafc;padding:10px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+            <div><b>Account:</b> ${escapeHtml(userDisplay)}</div>
+            <div style="margin-top:3px;color:#2563eb;font-weight:700;"><b>Login ID / Mobile:</b> ${escapeHtml(userLogin)}</div>
+          </div>
+          <div style="text-align:left;">
+            <label style="font-size:0.8rem;font-weight:700;color:#1e293b;">Naya Password (New Password) *</label>
+            <div style="position:relative;margin:0.4rem 0 0.9rem 0;">
+              <input type="password" id="swal_new_pw" class="swal2-input" style="width:100%;margin:0;height:44px;font-size:0.95rem;" placeholder="Enter new password">
+            </div>
+            <label style="font-size:0.8rem;font-weight:700;color:#1e293b;">Confirm New Password *</label>
+            <div style="position:relative;margin:0.4rem 0 0 0;">
+              <input type="password" id="swal_confirm_pw" class="swal2-input" style="width:100%;margin:0;height:44px;font-size:0.95rem;" placeholder="Re-enter new password">
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Update Password',
+        confirmButtonColor: '#10b981',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+          const p1 = document.getElementById('swal_new_pw').value.trim();
+          const p2 = document.getElementById('swal_confirm_pw').value.trim();
+          if (!p1) {
+            Swal.showValidationMessage('Please enter new password');
+            return false;
+          }
+          if (p1.length < 4) {
+            Swal.showValidationMessage('Password must be at least 4 characters');
+            return false;
+          }
+          if (p1 !== p2) {
+            Swal.showValidationMessage('Passwords do not match');
+            return false;
+          }
+          return p1;
+        }
+      }).then((res) => {
+        if (res.isConfirmed && res.value) {
+          submitPasswordChange(res.value);
+        }
+      });
+    }
+
+    function submitPasswordChange(newPw) {
+      const fd = new FormData();
+      fd.append('action', 'change_password');
+      fd.append('password', newPw);
+
+      showLoading(true);
+      fetch('?', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+          showLoading(false);
+          if (res.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Password Updated! 🎉',
+              text: 'Aapka password safaltapoorvak badal gaya hai. Ab aap naye password se login kar sakte hain.',
+              confirmButtonColor: '#10b981'
+            });
+          } else {
+            showToast(res.error || res.message || 'Failed to update password', 'error');
+          }
+        })
+        .catch(err => {
+          showLoading(false);
+          showToast('Network error: ' + (err.message || ''), 'error');
+        });
+    }
+
     function escapeHtml(text) {
       if (text === null || text === undefined) return '';
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };

@@ -434,10 +434,21 @@ async function handleSupabaseAction(urlStr, options) {
 
     case 'add_employee': {
       if (!db) return { success: false, message: 'Database offline' };
-      const pwd = postData.password || '123456';
+      const mob = (postData.mobile || '').replace(/\D/g, '').trim();
+      let uName = (postData.username || '').trim();
+      let pwd = (postData.password || '').trim();
+
+      // If role is Vendor: default ID & Password to mobile number
+      if (postData.role === 'Vendor' && mob) {
+        if (!uName) uName = mob;
+        if (!pwd) pwd = mob;
+      }
+      if (!uName) uName = mob || 'user_' + Date.now();
+      if (!pwd) pwd = mob || '123456';
+
       const pwdHash = await sha256(pwd);
       const newEmp = {
-        username: postData.username,
+        username: uName,
         password: pwdHash,
         name: postData.name,
         role: postData.role || 'Employee',
@@ -446,9 +457,85 @@ async function handleSupabaseAction(urlStr, options) {
         active: 1,
         permissions: postData.permissions || 'complaints_view,complaints_add'
       };
+      if (postData.profile_photo && postData.profile_photo !== 'default-photo.png') {
+        newEmp.profile_photo = postData.profile_photo;
+      }
       const { data, error } = await db.from('gas_users').insert([newEmp]).select();
       if (error) throw error;
       return { success: true, message: 'Employee added successfully', user: data[0] };
+    }
+
+    case 'update_employee': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const id = postData.id;
+      const mob = (postData.mobile || '').replace(/\D/g, '').trim();
+      let uName = (postData.username || '').trim();
+      if (postData.role === 'Vendor' && !uName && mob) {
+        uName = mob;
+      }
+
+      const updateData = {
+        name: postData.name,
+        username: uName || postData.username,
+        role: postData.role || 'Employee',
+        mobile: postData.mobile || '',
+        branch_id: postData.branch_id || 1,
+        permissions: postData.permissions || ''
+      };
+      if (postData.profile_photo && postData.profile_photo !== 'default-photo.png') {
+        updateData.profile_photo = postData.profile_photo;
+      }
+      if (postData.password && postData.password.trim()) {
+        updateData.password = await sha256(postData.password.trim());
+      }
+      const { error } = await db.from('gas_users').update(updateData).eq('id', id);
+      if (error) throw error;
+      return { success: true, message: 'Employee updated successfully' };
+    }
+
+    case 'change_password': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const user = currentUser || JSON.parse(localStorage.getItem('gas_user') || 'null');
+      if (!user) return { success: false, message: 'User session not found. Please log in again.' };
+      const newPwd = (postData.password || params.get('password') || '').trim();
+      if (!newPwd) return { success: false, message: 'New password cannot be empty' };
+      const pwdHash = await sha256(newPwd);
+
+      let query = db.from('gas_users').update({ password: pwdHash });
+      if (user.id) {
+        query = query.eq('id', user.id);
+      } else if (user.username) {
+        query = query.eq('username', user.username);
+      }
+      const { error } = await query;
+      if (error) throw error;
+      return { success: true, message: 'Password updated successfully' };
+    }
+
+    case 'update_my_profile': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const user = currentUser || JSON.parse(localStorage.getItem('gas_user') || 'null');
+      if (!user) return { success: false, message: 'User not logged in' };
+      
+      const updateData = {};
+      if (postData.name) updateData.name = postData.name.trim();
+      if (postData.mobile !== undefined) updateData.mobile = postData.mobile.trim();
+      if (postData.profile_photo && postData.profile_photo !== 'default-photo.png') {
+        updateData.profile_photo = postData.profile_photo;
+      }
+      if (postData.password && postData.password.trim()) {
+        updateData.password = await sha256(postData.password.trim());
+      }
+
+      if (user.id && user.id !== 1) {
+        const { error } = await db.from('gas_users').update(updateData).eq('id', user.id);
+        if (error) console.warn('Profile update warning:', error);
+      }
+
+      const updatedUser = { ...user, ...updateData };
+      delete updatedUser.password;
+      localStorage.setItem('gas_user', JSON.stringify(updatedUser));
+      return { success: true, message: 'Profile updated successfully' };
     }
 
     case 'impersonate_user': {
