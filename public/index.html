@@ -1838,6 +1838,77 @@
     </div>
   </div>
 
+  <!-- Modal: Vendor More Options Bottom Sheet -->
+  <div class="modal-overlay" id="vendorMoreSheet" onclick="if(event.target===this) closeVendorMoreSheet()" style="display: none; align-items: flex-end; padding: 0; z-index: 10000; background: rgba(15,23,42,0.65); backdrop-filter: blur(5px);">
+    <div style="background: var(--bg-card, #ffffff); width: 100%; max-width: 520px; margin: 0 auto; border-radius: 22px 22px 0 0; padding: 16px 20px 32px 20px; box-shadow: 0 -12px 35px rgba(0,0,0,0.25); animation: slideUpSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; max-height: 85vh; overflow-y: auto;">
+      <div style="width: 44px; height: 5px; background: #cbd5e1; border-radius: 99px; margin: 0 auto 16px auto;"></div>
+      
+      <!-- Vendor Info Card -->
+      <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin-bottom: 16px;">
+        <div id="vendorSheetAvatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25);">
+          V
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div class="user-name-slot" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Delivery Partner</div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+            <span style="font-size: 0.72rem; font-weight: 700; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 99px;">Delivery Partner</span>
+            <span id="vendorSheetMobile" style="font-size: 0.78rem; color: #64748b; font-weight: 600;"></span>
+          </div>
+        </div>
+        <button type="button" onclick="closeVendorMoreSheet()" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer; padding: 6px;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Actions List -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" onclick="closeVendorMoreSheet(); openChangePasswordModal();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #fed7aa; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #ffedd5; color: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-key"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">Change Password</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Apna login password badlein</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
+        </button>
+
+        <button type="button" onclick="closeVendorMoreSheet(); openMyProfileModal();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">Edit Profile & Photo</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Naam aur profile photo update karein</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
+        </button>
+
+        <button type="button" onclick="closeVendorMoreSheet(); optimizeVendorRoute();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-route"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">🗺️ GPS Route Optimizer</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Pending stops ka Google Maps route navigation</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
+        </button>
+
+        <button type="button" onclick="closeVendorMoreSheet(); handleLogout();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #fecaca; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#ffffff'">
+          <div style="width: 42px; height: 42px; border-radius: 11px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.95rem; font-weight: 800; color: #dc2626;">Logout from Portal</div>
+            <div style="font-size: 0.75rem; color: #991b1b;">Apne account se logout karein</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color: #fca5a5; font-size: 0.9rem;"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
 
 
   <!-- APP CONTROLLER CLIENT LOGIC -->
@@ -4547,76 +4618,7 @@
               }
             </style>
           </head>
-          <body onload="window.print()">${body}  <!-- Modal: Vendor More Options Bottom Sheet -->
-  <div class="modal-overlay" id="vendorMoreSheet" onclick="if(event.target===this) closeVendorMoreSheet()" style="display: none; align-items: flex-end; padding: 0; z-index: 10000; background: rgba(15,23,42,0.65); backdrop-filter: blur(5px);">
-    <div style="background: var(--bg-card, #ffffff); width: 100%; max-width: 520px; margin: 0 auto; border-radius: 22px 22px 0 0; padding: 16px 20px 32px 20px; box-shadow: 0 -12px 35px rgba(0,0,0,0.25); animation: slideUpSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; max-height: 85vh; overflow-y: auto;">
-      <div style="width: 44px; height: 5px; background: #cbd5e1; border-radius: 99px; margin: 0 auto 16px auto;"></div>
-      
-      <!-- Vendor Info Card -->
-      <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin-bottom: 16px;">
-        <div id="vendorSheetAvatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25);">
-          V
-        </div>
-        <div style="flex: 1; min-width: 0;">
-          <div class="user-name-slot" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Delivery Partner</div>
-          <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-            <span style="font-size: 0.72rem; font-weight: 700; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 99px;">Delivery Partner</span>
-            <span id="vendorSheetMobile" style="font-size: 0.78rem; color: #64748b; font-weight: 600;"></span>
-          </div>
-        </div>
-        <button type="button" onclick="closeVendorMoreSheet()" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer; padding: 6px;">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <!-- Actions List -->
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button type="button" onclick="closeVendorMoreSheet(); openChangePasswordModal();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #fed7aa; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background='#ffffff'">
-          <div style="width: 42px; height: 42px; border-radius: 11px; background: #ffedd5; color: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
-            <i class="fas fa-key"></i>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">Change Password</div>
-            <div style="font-size: 0.75rem; color: #64748b;">Apna login password badlein</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
-        </button>
-
-        <button type="button" onclick="closeVendorMoreSheet(); openMyProfileModal();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#ffffff'">
-          <div style="width: 42px; height: 42px; border-radius: 11px; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
-            <i class="fas fa-user-circle"></i>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">Edit Profile & Photo</div>
-            <div style="font-size: 0.75rem; color: #64748b;">Naam aur profile photo update karein</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
-        </button>
-
-        <button type="button" onclick="closeVendorMoreSheet(); optimizeVendorRoute();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
-          <div style="width: 42px; height: 42px; border-radius: 11px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
-            <i class="fas fa-route"></i>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">🗺️ GPS Route Optimizer</div>
-            <div style="font-size: 0.75rem; color: #64748b;">Pending stops ka Google Maps route navigation</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 0.9rem;"></i>
-        </button>
-
-        <button type="button" onclick="closeVendorMoreSheet(); handleLogout();" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: #ffffff; border: 1.5px solid #fecaca; border-radius: 14px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#ffffff'">
-          <div style="width: 42px; height: 42px; border-radius: 11px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
-            <i class="fas fa-sign-out-alt"></i>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 0.95rem; font-weight: 800; color: #dc2626;">Logout from Portal</div>
-            <div style="font-size: 0.75rem; color: #991b1b;">Apne account se logout karein</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color: #fca5a5; font-size: 0.9rem;"></i>
-        </button>
-      </div>
-    </div>
-  </div>
+          <body onload="window.print()">${body}  
 
 </body>
         </html>
