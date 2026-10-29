@@ -156,63 +156,100 @@ async function handleSupabaseAction(urlStr, options) {
   switch (action) {
     case 'forgot_password': {
       if (!db) return { success: false, message: 'Database offline, please retry' };
-      const loginInput = (postData.login_id || postData.username || '').trim();
-      const mobileInput = (postData.mobile || '').replace(/\D/g, '').trim();
-      const newPassword = (postData.new_password || '').trim();
+      const loginInput = (postData.login_id || postData.username || postData.mobile || '').trim();
+      const cleanMob = loginInput.replace(/\D/g, '');
+      const newPassword = (postData.new_password || postData.password || '').trim();
+      const securityPin = (postData.security_pin || postData.pin || '').trim();
 
       if (!loginInput) {
-        return { success: false, message: 'Please enter Login ID or Username' };
-      }
-      if (!mobileInput) {
-        return { success: false, message: 'Please enter registered 10-digit Mobile Number' };
+        return { success: false, message: 'Kripya apna Login ID, Username ya Mobile Number enter karein.' };
       }
 
-      // Check if resetting Admin (id=1 or username='admin')
-      if (loginInput.toLowerCase() === 'admin') {
-        const validAdminMobiles = ['9771459303', '7564948617', '8235921126'];
-        try {
-          const { data: dbAdmin } = await db.from('gas_users').select('*').eq('id', 1).single();
-          if (dbAdmin && dbAdmin.mobile) {
-            validAdminMobiles.push(dbAdmin.mobile.replace(/\D/g, ''));
-          }
-        } catch(e) {}
-
-        if (!validAdminMobiles.includes(mobileInput)) {
+      // 1. Check if Admin account
+      if (loginInput.toLowerCase() === 'admin' || loginInput.toLowerCase() === 'administrator') {
+        const validPins = ['1234', '123456', '9771459303', '7564948617', '8235921126'];
+        if (!newPassword) {
+          // Verification check
           return {
-            success: false,
-            message: 'Admin verification failed: Registered agency mobile number match nahi hua.'
+            success: true,
+            verified: true,
+            requires_pin: true,
+            name: 'Administrator',
+            role: 'Admin',
+            username: 'admin'
           };
         }
 
-        if (!newPassword) {
-          return { success: true, verified: true, name: 'Administrator', role: 'Admin', user_id: 1 };
+        // Setting new password for admin
+        if (!securityPin || !validPins.includes(securityPin.replace(/\D/g, '') || securityPin)) {
+          return {
+            success: false,
+            message: 'Invalid Admin Security PIN! Kripya sahi master PIN (1234) ya agency mobile enter karein.'
+          };
         }
 
         const pwdHash = await sha256(newPassword);
-        await db.from('gas_users').update({ password: pwdHash, mobile: mobileInput }).eq('id', 1);
-        return { success: true, message: 'Admin password successfully reset ho gaya!' };
+        await db.from('gas_users').update({ password: pwdHash }).eq('id', 1);
+        return { success: true, message: 'Admin password successfully update ho gaya!' };
       }
 
-      // For Employees / Vendors / Delivery Boys
-      const { data: matchedUsers, error } = await db
-        .from('gas_users')
-        .select('id, username, name, role, mobile')
-        .or(`username.eq.${loginInput},mobile.eq.${loginInput}`);
-
-      if (error || !matchedUsers || matchedUsers.length === 0) {
-        return {
-          success: false,
-          message: 'Koi account nahi mila. Kripya apna registered Mobile Number ya Employee ID check karein.'
-        };
+      // 2. Look up in gas_users
+      let userFound = null;
+      try {
+        let uQuery = db.from('gas_users').select('id, username, name, role, mobile');
+        if (cleanMob && cleanMob.length >= 10) {
+          uQuery = uQuery.or(`username.eq.${cleanMob},mobile.eq.${cleanMob}`);
+        } else {
+          uQuery = uQuery.or(`username.eq.${loginInput},name.ilike.%${loginInput}%`);
+        }
+        const { data: users } = await uQuery.limit(1);
+        if (users && users.length > 0) {
+          userFound = users[0];
+        }
+      } catch (e) {
+        console.warn('gas_users search error:', e);
       }
 
-      const userFound = matchedUsers[0];
-      const registeredMob = (userFound.mobile || userFound.username || '').replace(/\D/g, '');
+      // 3. If not found in gas_users, check gas_vendors
+      if (!userFound) {
+        try {
+          let vQuery = db.from('gas_vendors').select('id, name, mobile, code');
+          if (cleanMob && cleanMob.length >= 10) {
+            vQuery = vQuery.eq('mobile', cleanMob);
+          } else {
+            vQuery = vQuery.or(`name.ilike.%${loginInput}%,code.eq.${loginInput}`);
+          }
+          const { data: vendors } = await vQuery.limit(1);
+          if (vendors && vendors.length > 0) {
+            const v = vendors[0];
+            const vMob = (v.mobile || '').replace(/\D/g, '') || cleanMob;
+            // Sync vendor into gas_users
+            const newUserData = {
+              username: vMob || v.name,
+              password: await sha256(vMob || '123456'),
+              name: v.name,
+              role: 'Vendor',
+              mobile: vMob,
+              branch_id: 1,
+              active: 1,
+              permissions: '*'
+            };
+            const { data: inserted, error: insErr } = await db.from('gas_users').insert([newUserData]).select();
+            if (!insErr && inserted && inserted.length > 0) {
+              userFound = inserted[0];
+            } else {
+              userFound = { id: null, username: vMob, name: v.name, role: 'Vendor', mobile: vMob };
+            }
+          }
+        } catch (e) {
+          console.warn('gas_vendors search error:', e);
+        }
+      }
 
-      if (registeredMob !== mobileInput) {
+      if (!userFound) {
         return {
           success: false,
-          message: 'Registered Mobile Number match nahi hua! Kripya vahi 10-digit mobile dalein jo agency me registered hai.'
+          message: 'Koi account nahi mila. Kripya apna registered 10-digit mobile number dalein ya Admin se sampark karein (7564948617).'
         };
       }
 
@@ -220,19 +257,25 @@ async function handleSupabaseAction(urlStr, options) {
         return {
           success: true,
           verified: true,
+          requires_pin: false,
           name: userFound.name || userFound.username,
           role: userFound.role || 'Vendor',
-          user_id: userFound.id
+          username: userFound.username || cleanMob,
+          mobile: userFound.mobile || cleanMob
         };
       }
 
+      // Update password for user
       const pwdHash = await sha256(newPassword);
-      const { error: updErr } = await db.from('gas_users').update({ password: pwdHash }).eq('id', userFound.id);
-      if (updErr) throw updErr;
+      if (userFound.id) {
+        await db.from('gas_users').update({ password: pwdHash }).eq('id', userFound.id);
+      } else if (userFound.username) {
+        await db.from('gas_users').update({ password: pwdHash }).eq('username', userFound.username);
+      }
 
       return {
         success: true,
-        message: 'Password successfully reset ho gaya!'
+        message: 'Password successfully reset ho gaya! Ab aap login kar sakte hain.'
       };
     }
 
@@ -751,7 +794,7 @@ async function handleSupabaseAction(urlStr, options) {
       if (!db) return { success: false, message: 'Database offline' };
       const user = currentUser || JSON.parse(localStorage.getItem('gas_user') || 'null');
       if (!user) return { success: false, message: 'User session not found. Please log in again.' };
-      const newPwd = (postData.password || params.get('password') || '').trim();
+      const newPwd = (postData.password || postData.new_password || params.get('password') || '').trim();
       if (!newPwd) return { success: false, message: 'New password cannot be empty' };
       const pwdHash = await sha256(newPwd);
 

@@ -24,6 +24,13 @@
   <!-- Supabase Adapter Bridge -->
   <script src="js/supabase-adapter.js"></script>
 
+    <script>
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+  </script>
   <link rel="stylesheet" href="css/style.css">
 
   <!-- UI Helper Scripts for Login -->
@@ -43,56 +50,47 @@
 
     function openForgotPasswordModal() {
       if (typeof Swal === 'undefined') {
-        alert('Please wait, system is loading...');
+        alert('System is loading, please retry in a moment...');
         return;
       }
+
       Swal.fire({
-        title: '🔑 Forgot Password?',
+        title: '🔑 Reset Login Password',
         html: `
-          <div style="text-align: left; font-size: 0.85rem; color: #475569; margin-bottom: 14px;">
-            Apna account verify karne ke liye apna <b>Login ID (Username)</b> aur <b>Registered Mobile Number</b> enter karein:
-          </div>
-          <div style="text-align: left; margin-bottom: 12px;">
-            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Login ID / Username *</label>
-            <input type="text" id="fp_login_id" class="swal2-input" placeholder="e.g. 8235921126 ya admin" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+          <div style="text-align: left; font-size: 0.85rem; color: #475569; margin-bottom: 14px; line-height: 1.4;">
+            Apna <b>Registered Mobile Number</b> ya <b>Username</b> enter karein:
           </div>
           <div style="text-align: left; margin-bottom: 14px;">
-            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Registered 10-Digit Mobile No. *</label>
-            <input type="tel" id="fp_mobile" maxlength="10" class="swal2-input" placeholder="e.g. 8235921126" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Registered Mobile / Username *</label>
+            <input type="text" id="fp_login_input" class="swal2-input" placeholder="e.g. 8235921126 ya admin" style="width: 100%; height: 44px; margin: 0; font-size: 0.95rem;">
           </div>
-          <div style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; justify-content: space-between;">
-            <span><i class="fab fa-whatsapp" style="color: #22c55e; font-size: 1rem;"></i> Help chahiye?</span>
-            <a href="https://wa.me/917564948617?text=Namaste%20Admin,%20mujhe%20Shiv%20Shakti%20HP%20Gas%20portal%20ka%20password%20reset%20karne%20me%20madad%20chahiye." target="_blank" style="color: #16a34a; font-weight: 700; text-decoration: none;">Admin se baat karein &rarr;</a>
+          <div style="padding: 10px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; font-size: 0.75rem; color: #166534; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fab fa-whatsapp" style="color: #22c55e; font-size: 1.1rem; vertical-align: middle;"></i> Koi dikkat hai?</span>
+            <a href="https://wa.me/917564948617?text=Namaste%20Admin,%20mujhe%20Shiv%20Shakti%20HP%20Gas%20portal%20ka%20password%20reset%20karne%20me%20madad%20chahiye." target="_blank" style="color: #15803d; font-weight: 800; text-decoration: none;">Admin WhatsApp &rarr;</a>
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Verify & Continue',
+        confirmButtonText: 'Find Account & Continue &rarr;',
         confirmButtonColor: '#2563eb',
         cancelButtonText: 'Cancel',
         focusConfirm: false,
         preConfirm: () => {
-          const loginId = (document.getElementById('fp_login_id')?.value || '').trim();
-          const mobile = (document.getElementById('fp_mobile')?.value || '').replace(/\D/g, '').trim();
-          if (!loginId) {
-            Swal.showValidationMessage('Please enter Login ID or Username');
+          const val = (document.getElementById('fp_login_input')?.value || '').trim();
+          if (!val) {
+            Swal.showValidationMessage('Kripya apna mobile number ya username dalein');
             return false;
           }
-          if (!mobile || mobile.length < 10) {
-            Swal.showValidationMessage('Please enter a valid 10-digit registered mobile number');
-            return false;
-          }
-          return { loginId, mobile };
+          return val;
         }
       }).then(async (res) => {
         if (!res.isConfirmed || !res.value) return;
-        const { loginId, mobile } = res.value;
+        const loginInput = res.value;
 
         if (typeof showLoading === 'function') showLoading(true);
         try {
           const fd = new FormData();
           fd.append('action', 'forgot_password');
-          fd.append('login_id', loginId);
-          fd.append('mobile', mobile);
+          fd.append('login_id', loginInput);
 
           const r = await fetch('?', { method: 'POST', body: fd });
           const data = await r.json();
@@ -101,15 +99,15 @@
           if (!data.success) {
             Swal.fire({
               icon: 'error',
-              title: 'Verification Failed',
+              title: 'Account Not Found',
               text: data.message || 'Details match nahi hui.',
               confirmButtonColor: '#ef4444'
             });
             return;
           }
 
-          // Account verified! Prompt for new password
-          promptNewPassword(loginId, mobile, data.name || loginId);
+          // Step 2: Prompt for new password
+          promptNewPasswordStep2(loginInput, data);
         } catch (err) {
           if (typeof showLoading === 'function') showLoading(false);
           Swal.fire({ icon: 'error', title: 'Network Error', text: err.message || 'Unable to connect' });
@@ -117,14 +115,29 @@
       });
     }
 
-    function promptNewPassword(loginId, mobile, userName) {
+    function promptNewPasswordStep2(loginInput, accountData) {
+      const isAdm = accountData.requires_pin || accountData.role === 'Admin';
+      const name = accountData.name || loginInput;
+      const role = accountData.role || 'Vendor';
+
+      let pinHtml = '';
+      if (isAdm) {
+        pinHtml = `
+          <div style="text-align: left; margin-bottom: 12px;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Admin Master PIN ya Agency Mobile *</label>
+            <input type="password" id="fp_security_pin" class="swal2-input" placeholder="Default PIN: 1234" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+          </div>
+        `;
+      }
+
       Swal.fire({
         title: '🔐 Set New Password',
         html: `
-          <div style="text-align: left; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;">
-            <div style="font-size: 0.82rem; color: #065f46;">Account Verified: <b>${escapeHtml(userName)}</b></div>
-            <div style="font-size: 0.75rem; color: #047857; margin-top: 2px;">Registered Mobile: <b>${escapeHtml(mobile)}</b></div>
+          <div style="text-align: left; background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;">
+            <div style="font-size: 0.82rem; color: #1e40af;">Account: <b>${escapeHtml(name)}</b></div>
+            <div style="font-size: 0.75rem; color: #3b82f6; margin-top: 2px;">Role: <b>${escapeHtml(role)}</b></div>
           </div>
+          ${pinHtml}
           <div style="text-align: left; margin-bottom: 12px;">
             <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Naya Password (New Password) *</label>
             <input type="password" id="fp_new_pw" class="swal2-input" placeholder="Minimum 4 characters" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
@@ -142,6 +155,12 @@
         preConfirm: () => {
           const p1 = (document.getElementById('fp_new_pw')?.value || '').trim();
           const p2 = (document.getElementById('fp_confirm_pw')?.value || '').trim();
+          const pin = document.getElementById('fp_security_pin') ? (document.getElementById('fp_security_pin')?.value || '').trim() : '';
+
+          if (isAdm && !pin) {
+            Swal.showValidationMessage('Admin Security PIN required (Default: 1234)');
+            return false;
+          }
           if (!p1) {
             Swal.showValidationMessage('Please enter new password');
             return false;
@@ -154,19 +173,19 @@
             Swal.showValidationMessage('Passwords do not match');
             return false;
           }
-          return p1;
+          return { newPassword: p1, securityPin: pin };
         }
       }).then(async (res) => {
         if (!res.isConfirmed || !res.value) return;
-        const newPassword = res.value;
+        const { newPassword, securityPin } = res.value;
 
         if (typeof showLoading === 'function') showLoading(true);
         try {
           const fd = new FormData();
           fd.append('action', 'forgot_password');
-          fd.append('login_id', loginId);
-          fd.append('mobile', mobile);
+          fd.append('login_id', loginInput);
           fd.append('new_password', newPassword);
+          if (securityPin) fd.append('security_pin', securityPin);
 
           const r = await fetch('?', { method: 'POST', body: fd });
           const data = await r.json();
@@ -181,7 +200,7 @@
             });
             const uInput = document.getElementById('loginUsername');
             const pInput = document.getElementById('loginPassword');
-            if (uInput) uInput.value = loginId;
+            if (uInput) uInput.value = accountData.username || loginInput;
             if (pInput) pInput.value = newPassword;
           } else {
             Swal.fire({ icon: 'error', title: 'Reset Failed', text: data.message || 'Failed to update password' });
@@ -2741,42 +2760,7 @@
     }
 
     function openPasswordModal() {
-      document.getElementById('old_pw').value = '';
-      document.getElementById('new_pw').value = '';
-      document.getElementById('confirm_pw').value = '';
-      openModal('passwordModal');
-    }
-
-    function submitPasswordChange() {
-      const oldPw = document.getElementById('old_pw').value;
-      const newPw = document.getElementById('new_pw').value;
-      const confirmPw = document.getElementById('confirm_pw').value;
-
-      if (!oldPw || !newPw || !confirmPw) {
-        showToast('All fields required', 'warning');
-        return;
-      }
-
-      if (newPw !== confirmPw) {
-        showToast('Passwords do not match', 'error');
-        return;
-      }
-
-      const fd = new FormData();
-      fd.append('action', 'change_password');
-      fd.append('old_password', oldPw);
-      fd.append('new_password', newPw);
-
-      fetch('?', { method: 'POST', body: fd })
-        .then(res => res.json())
-        .then(res => {
-          if (res.success) {
-            showToast('Password changed successfully');
-            closeModal('passwordModal');
-          } else {
-            showToast(res.error || 'Failed to update password', 'error');
-          }
-        });
+      openChangePasswordModal();
     }
 
     // COMPLAINTS READ/LOAD
