@@ -5,10 +5,17 @@ const SUPABASE_ANON_KEY = 'sb_publishable_04d6tXc2KFfahuYPaL9cZQ_V2vjSueq';
 // Initialize Supabase Client safely
 function getDbClient() {
   if (window.dbClient) return window.dbClient;
+  const clientOptions = {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  };
   if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
-    window.dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
   } else if (typeof createClient === 'function') {
-    window.dbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.dbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientOptions);
   }
   return window.dbClient;
 }

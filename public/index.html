@@ -49,6 +49,9 @@
     }
 
     function openForgotPasswordModal() {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
       if (typeof Swal === 'undefined') {
         alert('System is loading, please retry in a moment...');
         return;
@@ -334,9 +337,9 @@
               <input type="checkbox" id="rememberMe" checked>
               <span>Remember login session</span>
             </label>
-            <a href="javascript:void(0)" onclick="openForgotPasswordModal()" style="font-size: 0.8rem; font-weight: 700; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+            <button type="button" onclick="this.blur(); openForgotPasswordModal();" style="background: none; border: none; padding: 0; font-family: inherit; font-size: 0.8rem; font-weight: 700; color: #2563eb; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
               <i class="fas fa-question-circle"></i> Forgot Password?
-            </a>
+            </button>
           </div>
 
           <button type="submit" id="loginSubmitBtn" class="btn-premium-login">
@@ -349,7 +352,7 @@
 
         <div class="login-card-footer" style="margin-top: 20px; text-align: center;">
           <div style="margin-bottom: 12px;">
-            <button type="button" onclick="openForgotPasswordModal()" style="background: none; border: none; color: #64748b; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <button type="button" onclick="this.blur(); openForgotPasswordModal();" style="background: none; border: none; color: #64748b; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
               <i class="fas fa-key" style="color: #f59e0b;"></i> Password bhul gaye? <strong>Reset karein</strong>
             </button>
           </div>
@@ -2131,10 +2134,20 @@
           State.user = res.user;
           localStorage.setItem('gas_user', JSON.stringify(res.user));
           
+          if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+          }
           const loginView = document.getElementById('loginView');
           const dashboardView = document.getElementById('dashboardView');
-          if (loginView) loginView.style.display = 'none';
-          if (dashboardView) dashboardView.style.display = 'block';
+          if (loginView) {
+            loginView.style.display = 'none';
+            loginView.removeAttribute('aria-hidden');
+            loginView.setAttribute('inert', '');
+          }
+          if (dashboardView) {
+            dashboardView.style.display = 'block';
+            dashboardView.removeAttribute('inert');
+          }
 
           // Update user names on screen
           document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = res.user.name || 'Administrator');
@@ -2220,15 +2233,32 @@
       const dashboardView = document.getElementById('dashboardView');
 
       if (!userStr) {
-        if (loginView) loginView.style.display = 'flex';
-        if (dashboardView) dashboardView.style.display = 'none';
+        if (dashboardView) {
+          dashboardView.style.display = 'none';
+          dashboardView.setAttribute('inert', '');
+        }
+        if (loginView) {
+          loginView.style.display = 'flex';
+          loginView.removeAttribute('inert');
+          loginView.removeAttribute('aria-hidden');
+        }
       } else {
         try {
           State.user = JSON.parse(userStr);
         } catch(e) {}
 
-        if (loginView) loginView.style.display = 'none';
-        if (dashboardView) dashboardView.style.display = 'block';
+        if (document.activeElement && loginView && loginView.contains(document.activeElement)) {
+          document.activeElement.blur();
+        }
+        if (loginView) {
+          loginView.style.display = 'none';
+          loginView.removeAttribute('aria-hidden');
+          loginView.setAttribute('inert', '');
+        }
+        if (dashboardView) {
+          dashboardView.style.display = 'block';
+          dashboardView.removeAttribute('inert');
+        }
 
         // Update user slots
         document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = State.user?.name || 'Administrator');
