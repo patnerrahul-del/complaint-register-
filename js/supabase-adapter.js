@@ -828,16 +828,48 @@ async function handleSupabaseAction(urlStr, options) {
     case 'resolve_complaint': {
       if (!db) return { success: false, message: 'Database offline' };
       const id = postData.id || params.get('id');
-      const signature = postData.signature_url || '';
+      const signature = (postData.signature_data || postData.signature_url || '').trim();
+      const photoProof = (postData.photo_proof_data || postData.photo_proof_url || '').trim();
+      const otpCode = (postData.otp_code || '').trim();
+      const otpVerified = postData.otp_verified === true || postData.otp_verified === 'true';
 
-      const { error } = await db.from('gas_complaints').update({
+      const updateData = {
         status: 'Delivered',
-        signature_url: signature,
         resolved_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      }).eq('id', id);
+      };
+
+      if (signature) {
+        updateData.signature_url = signature;
+      }
+      if (photoProof) {
+        updateData.photo_proof_url = photoProof;
+      }
+
+      // Build structured proof summary audit note
+      const proofParts = [];
+      if (otpVerified && otpCode) {
+        proofParts.push(`OTP Verified: ${otpCode}`);
+      }
+      if (signature) {
+        proofParts.push('Digital Signature Captured');
+      }
+      if (photoProof) {
+        proofParts.push('Photo Proof Captured');
+      }
+      if (postData.delivery_notes && postData.delivery_notes.trim()) {
+        proofParts.push(postData.delivery_notes.trim());
+      }
+
+      if (proofParts.length > 0) {
+        updateData.fail_notes = proofParts.join(' | ');
+      } else if (postData.delivery_mode === 'no_proof') {
+        updateData.fail_notes = 'Fast Delivery (No Proof)';
+      }
+
+      const { error } = await db.from('gas_complaints').update(updateData).eq('id', id);
       if (error) throw error;
-      return { success: true, message: 'Complaint resolved and delivered' };
+      return { success: true, message: 'Complaint resolved and delivered with proof' };
     }
 
     case 'mark_delivery_failed': {

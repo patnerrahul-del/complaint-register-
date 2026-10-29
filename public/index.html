@@ -2514,7 +2514,16 @@
           <td class="hide-mobile"><span class="badge badge-secondary">${escapeHtml(r.source)}</span></td>
           <td style="max-width:180px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">${escapeHtml(r.complaint)}</td>
           <td style="font-weight:600;color:#1e293b;" class="hide-mobile">${escapeHtml(r.vendor || 'Unassigned')}</td>
-          <td><span class="badge badge-${r.status.toLowerCase().replace(' ', '-')}">${r.status}</span></td>
+          <td>
+            <span class="badge badge-${r.status.toLowerCase().replace(' ', '-')}">${r.status}</span>
+            ${(() => {
+              const pills = [];
+              if (r.signature_url) pills.push('<span title="Digital Signature Captured" style="font-size:0.65rem;background:#eff6ff;color:#2563eb;padding:1px 4px;border-radius:4px;font-weight:700;">✍️ Sign</span>');
+              if (r.photo_proof_url) pills.push('<span title="Cylinder Photo Proof" style="font-size:0.65rem;background:#fdf4ff;color:#9333ea;padding:1px 4px;border-radius:4px;font-weight:700;">📸 Photo</span>');
+              if (r.fail_notes && r.fail_notes.includes('OTP Verified')) pills.push('<span title="OTP Verified" style="font-size:0.65rem;background:#ecfdf5;color:#059669;padding:1px 4px;border-radius:4px;font-weight:700;">🔢 OTP</span>');
+              return pills.length > 0 ? `<div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;">${pills.join('')}</div>` : '';
+            })()}
+          </td>
           <td style="white-space:nowrap;">
             ${callBtn}${waBtn}${mapBtn}${delBtnHtml}
             <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;" title="View Details">
@@ -2812,30 +2821,72 @@
 
       document.getElementById('detailsModalTitle').innerHTML = `<i class="fas fa-file-alt text-danger"></i> Complaint Details &mdash; Case #${c.id}`;
 
-      const sigBlock = c.signature_url ? `
-        <div style="grid-column: 1 / -1; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-          <div style="font-weight:700;margin-bottom:0.5rem;">Customer Digital Signature:</div>
-          <img src="${c.signature_url}" style="max-height:80px;border:1px solid var(--border-color);border-radius:8px;background:white;padding:4px;" />
-        </div>
-      ` : '';
-
       const failBanner = c.fail_reason ? `
         <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 15px; margin-bottom:1.25rem;">
           <div style="font-weight:800; color:#dc2626; font-size:0.9rem; display:flex; align-items:center; gap:6px;">
-            <i class="fas fa-exclamation-triangle"></i> Delivery Failed: ${escapeHtml(c.fail_reason)}
+            <i class="fas fa-exclamation-triangle"></i> Delivery Issue: ${escapeHtml(c.fail_reason)}
           </div>
           ${c.fail_notes ? `<div style="font-size:0.8rem; color:#7f1d1d; margin-top:4px;"><b>Notes:</b> ${escapeHtml(c.fail_notes)}</div>` : ''}
         </div>
       ` : '';
 
-      const photoBlock = c.photo_proof_url ? `
-        <div style="grid-column: 1 / -1; margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-          <div style="font-weight:700;margin-bottom:0.4rem;font-size:0.82rem;color:var(--text-muted);"><i class="fas fa-camera"></i> Delivery Photo Proof:</div>
-          <a href="${c.photo_proof_url}" target="_blank">
-            <img src="${c.photo_proof_url}" style="max-height:120px; border:1px solid var(--border-color); border-radius:8px; background:white; padding:4px; object-fit:cover;" />
-          </a>
-        </div>
-      ` : '';
+      // Structured Delivery Proof Card
+      let proofCardHtml = '';
+      if (c.status === 'Delivered' || c.status === 'Resolved' || c.signature_url || c.photo_proof_url || (c.fail_notes && c.fail_notes.includes('OTP Verified'))) {
+        const proofPills = [];
+        const otpMatch = (c.fail_notes || '').match(/OTP Verified:?\s*(\d{4})/i);
+        const otpVal = otpMatch ? otpMatch[1] : '';
+
+        if (otpVal) {
+          proofPills.push(`<span class="badge" style="background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;font-size:0.75rem;padding:3px 8px;font-weight:700;"><i class="fas fa-shield-alt"></i> OTP: ${otpVal} (Verified)</span>`);
+        }
+        if (c.signature_url) {
+          proofPills.push(`<span class="badge" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-size:0.75rem;padding:3px 8px;font-weight:700;"><i class="fas fa-signature"></i> Digital Sign</span>`);
+        }
+        if (c.photo_proof_url) {
+          proofPills.push(`<span class="badge" style="background:#fdf4ff;color:#9333ea;border:1px solid #f0abfc;font-size:0.75rem;padding:3px 8px;font-weight:700;"><i class="fas fa-camera"></i> Photo Proof</span>`);
+        }
+        if (proofPills.length === 0) {
+          proofPills.push(`<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:0.72rem;padding:3px 8px;">Fast Delivery (No Proof)</span>`);
+        }
+
+        const sigImg = c.signature_url ? `
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:6px;"><i class="fas fa-signature"></i> Customer Digital Signature</div>
+            <img src="${c.signature_url}" style="max-height:85px;max-width:100%;object-fit:contain;background:#fff;" />
+          </div>
+        ` : '';
+
+        const photoImg = c.photo_proof_url ? `
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;font-weight:700;color:#64748b;margin-bottom:6px;"><i class="fas fa-camera"></i> Cylinder Delivery Photo</div>
+            <img src="${c.photo_proof_url}" onclick="viewFullPhoto('${c.photo_proof_url}')" title="Click to enlarge" style="max-height:85px;max-width:100%;object-fit:cover;border-radius:6px;cursor:pointer;" />
+            <div style="font-size:0.68rem;color:#2563eb;font-weight:700;margin-top:4px;cursor:pointer;" onclick="viewFullPhoto('${c.photo_proof_url}')"><i class="fas fa-search-plus"></i> View Full Photo</div>
+          </div>
+        ` : '';
+
+        const gridCols = (sigImg && photoImg) ? '1fr 1fr' : '1fr';
+
+        proofCardHtml = `
+          <div class="premium-detail-card" style="margin-top:1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              <div style="font-weight:800;font-size:0.88rem;color:#0f172a;display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-shield-check" style="color:#10b981;"></i> 📱 Delivery Verification Proofs
+              </div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                ${proofPills.join(' ')}
+              </div>
+            </div>
+            ${(sigImg || photoImg) ? `
+              <div style="display:grid;grid-template-columns:${gridCols};gap:10px;margin-top:6px;">
+                ${sigImg}
+                ${photoImg}
+              </div>
+            ` : ''}
+            ${c.fail_notes ? `<div style="font-size:0.75rem;color:#64748b;margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:6px;"><b>Delivery Log:</b> ${escapeHtml(c.fail_notes)}</div>` : ''}
+          </div>
+        `;
+      }
 
       const detailGrid = `
         ${failBanner}
@@ -2872,10 +2923,8 @@
 
           <div style="font-weight:700;color:var(--text-muted);">Resolved At:</div>
           <div>${resolvedDate}</div>
-          
-          ${sigBlock}
-          ${photoBlock}
         </div>
+        ${proofCardHtml}
       `;
 
       document.getElementById('detailsModalBody').innerHTML = detailGrid;
@@ -2907,21 +2956,28 @@
 
     function quickMarkDelivered(id, consumerName) {
       Swal.fire({
-        title: 'Mark Case #' + id + ' Delivered?',
-        text: `Confirm delivery for ${consumerName || 'Consumer'} (Signature is Optional)`,
+        title: `Deliver Case #${id}?`,
+        html: `
+          <div style="font-size:0.95rem;color:#475569;margin-bottom:0.75rem;">
+            Confirm delivery for <b>${escapeHtml(consumerName || 'Consumer')}</b>
+          </div>
+          <div style="font-size:0.8rem;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:8px 12px;text-align:left;">
+            💡 <b>Mobile Proof Available:</b> Customer ka <b>Ungli se sign</b>, <b>Delivery OTP</b> ya <b>Cylinder photo</b> save karein taaki dispute na rahe.
+          </div>
+        `,
         icon: 'question',
         showCancelButton: true,
         showDenyButton: true,
-        confirmButtonText: '⚡ Fast Deliver (No Signature)',
-        denyButtonText: '✍️ Add Sign / Photo (Optional)',
+        confirmButtonText: '📱 Add Proof (Sign / OTP / Photo)',
+        denyButtonText: '⚡ Fast Deliver (No Proof)',
         confirmButtonColor: '#10b981',
-        denyButtonColor: '#3b82f6',
+        denyButtonColor: '#64748b',
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          submitResolutionNoSign(id);
-        } else if (result.isDenied) {
           openMarkDeliveredModal(id);
+        } else if (result.isDenied) {
+          submitResolutionNoSign(id);
         }
       });
     }
@@ -3006,120 +3062,433 @@
         .catch(() => { showLoading(false); showToast('Network error', 'error'); });
     }
 
-    // SIGNATURE PAD & RESOLUTION SYSTEM
+    // =========================================================================
+    // MOBILE DELIVERY PROOF SYSTEM (DIGITAL SIGNATURE, OTP, PHOTO PROOF)
+    // =========================================================================
     let sigDrawing = false;
     let canvasContext = null;
+    let deliveryProofState = {
+      complaintId: null,
+      consumer: null,
+      otpExpected: '',
+      otpVerified: false,
+      otpCode: '',
+      hasSignature: false,
+      photoProofData: '',
+      activeTab: 'signature'
+    };
+
+    function getDeliveryOtp(c) {
+      if (!c) return '1234';
+      const id = parseInt(c.id) || 1;
+      const mobDigits = (c.mobile || '').replace(/\D/g, '');
+      const seed = (id * 4391) + (parseInt(mobDigits.slice(-4)) || 1729);
+      const code = (Math.abs(seed) % 9000) + 1000;
+      return String(code);
+    }
+
+    function viewFullPhoto(url) {
+      if (!url) return;
+      Swal.fire({
+        imageUrl: url,
+        imageAlt: 'Delivered Cylinder Photo Proof',
+        title: '📸 Cylinder Delivery Proof',
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#0f172a'
+      });
+    }
 
     function openMarkDeliveredModal(id) {
       closeModal('detailsModal');
       
-      // Load resolution modal dialog
+      let c = (State.activeRows || []).find(x => String(x.id) === String(id)) || 
+              (State.histRows || []).find(x => String(x.id) === String(id));
+
+      if (!c) {
+        showLoading(true);
+        fetch(`?action=get_complaint_details&id=${id}`)
+          .then(r => r.json())
+          .then(res => {
+            showLoading(false);
+            if (res.success && res.complaint) {
+              renderMarkDeliveredModalUI(res.complaint);
+            } else {
+              showToast('Complaint not found', 'error');
+            }
+          })
+          .catch(() => { showLoading(false); showToast('Network error', 'error'); });
+      } else {
+        renderMarkDeliveredModalUI(c);
+      }
+    }
+
+    function renderMarkDeliveredModalUI(c) {
+      const id = c.id;
+      const expectedOtp = getDeliveryOtp(c);
+
+      deliveryProofState = {
+        complaintId: id,
+        consumer: c,
+        otpExpected: expectedOtp,
+        otpVerified: false,
+        otpCode: '',
+        hasSignature: false,
+        photoProofData: '',
+        activeTab: 'signature'
+      };
+
+      document.getElementById('detailsModalTitle').innerHTML = `
+        <i class="fas fa-truck-ramp-box" style="color:#10b981;"></i> Mark Delivery Proof &mdash; Case #${id}
+      `;
+
       const markup = `
-        <div style="margin-bottom:1.25rem;">
-          <h2 style="margin:0;font-weight:800;color:#10b981;">Mark Delivery Complete - Case #${id}</h2>
-          <p style="margin:0.25rem 0 0 0;color:var(--text-muted);font-size:0.85rem;">Customer signature & receipt photo are <b>100% OPTIONAL</b>.</p>
+        <div class="delivery-proof-header">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div style="font-weight:800;font-size:1.05rem;color:#0f172a;">${escapeHtml(c.consumer_name)}</div>
+              <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">
+                <b>Acc No:</b> ${escapeHtml(c.consumer_number || 'N/A')} &bull; <b>Mobile:</b> <span style="color:#2563eb;font-weight:700;">${escapeHtml(c.mobile)}</span>
+              </div>
+              <div style="font-size:0.75rem;color:#475569;margin-top:2px;">
+                <i class="fas fa-map-marker-alt" style="color:#ea580c;"></i> ${escapeHtml(c.address || '')}
+              </div>
+            </div>
+            <span class="badge badge-warning" style="font-size:0.75rem;padding:4px 8px;">Pending Delivery</span>
+          </div>
         </div>
-        <div class="form-group">
-          <label><i class="fas fa-signature"></i> Customer Digital Signature (Optional)</label>
-          <div class="sig-canvas-container">
+
+        <!-- 3 Proof Tabs -->
+        <div class="proof-tabs-container">
+          <button type="button" id="proofTabBtn_signature" class="proof-tab-btn active" onclick="switchProofTab('signature')">
+            <i class="fas fa-signature"></i> ✍️ Screen Sign
+            <span id="proofBadge_signature" class="proof-ready-badge" style="display:none;"><i class="fas fa-check"></i></span>
+          </button>
+          <button type="button" id="proofTabBtn_otp" class="proof-tab-btn" onclick="switchProofTab('otp')">
+            <i class="fas fa-shield-alt"></i> 🔢 Customer OTP
+            <span id="proofBadge_otp" class="proof-ready-badge" style="display:none;"><i class="fas fa-check"></i></span>
+          </button>
+          <button type="button" id="proofTabBtn_photo" class="proof-tab-btn" onclick="switchProofTab('photo')">
+            <i class="fas fa-camera"></i> 📸 Photo Proof
+            <span id="proofBadge_photo" class="proof-ready-badge" style="display:none;"><i class="fas fa-check"></i></span>
+          </button>
+        </div>
+
+        <!-- TAB 1: DIGITAL SIGNATURE -->
+        <div id="proofTabContent_signature" class="proof-tab-content">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="font-size:0.82rem;font-weight:700;color:#1e293b;margin:0;">
+              Customer Digital Signature (Screen Sign)
+            </label>
+            <div id="sigStatusText" style="font-size:0.75rem;color:#64748b;">Ungli se sign karwayein</div>
+          </div>
+          <div class="sig-canvas-box">
             <canvas id="sigCanvas"></canvas>
+            <div class="sig-guide-line">✍️ Customer sign above this line / Yahan sign karein</div>
           </div>
-          <div style="text-align:right;margin-top:0.35rem;">
-            <button class="btn btn-outline btn-sm" onclick="clearSignatureCanvas()"><i class="fas fa-undo"></i> Clear Sign</button>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <span style="font-size:0.72rem;color:#64748b;">Finger touch or stylus supported</span>
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearSignatureCanvas()" style="font-size:0.75rem;padding:3px 10px;">
+              <i class="fas fa-undo"></i> Clear Sign
+            </button>
           </div>
         </div>
-        <div class="form-group" style="margin-top:1rem;">
-          <label><i class="fas fa-camera"></i> Upload Delivery Photo / Receipt Proof (Optional)</label>
-          <input type="file" id="deliveryPhotoFile" accept="image/*" capture="environment" class="form-control" style="padding:6px;">
+
+        <!-- TAB 2: DELIVERY OTP -->
+        <div id="proofTabContent_otp" class="proof-tab-content" style="display:none;">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;margin-bottom:12px;">
+            <div style="font-size:0.8rem;color:#1e40af;font-weight:600;line-height:1.4;">
+              <i class="fas fa-info-circle"></i> Customer ke phone <b>(${escapeHtml(c.mobile)})</b> par delivery OTP bhejein ya customer se 4-digit OTP puchkar verify karein.
+            </div>
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btn-sm btn-outline" onclick="sendOtpViaWhatsApp(${id})" style="background:#ffffff;color:#16a34a;border-color:#86efac;font-weight:700;">
+                <i class="fab fa-whatsapp"></i> 📲 Send OTP on Customer's WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <div style="text-align:center;padding:10px 0;">
+            <div style="font-size:0.82rem;font-weight:700;color:#334155;margin-bottom:8px;">ENTER 4-DIGIT CUSTOMER OTP</div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;">
+              <input type="text" id="deliveryOtpInput" class="otp-big-input" maxlength="4" placeholder="0000" inputmode="numeric" autocomplete="one-time-code">
+              <button type="button" class="btn btn-primary" onclick="verifyDeliveryOtp()" style="height:50px;padding:0 20px;font-weight:800;background:#2563eb;">
+                <i class="fas fa-check-shield"></i> Verify
+              </button>
+            </div>
+            <div id="otpFeedbackMsg" style="margin-top:10px;font-size:0.82rem;font-weight:700;min-height:22px;"></div>
+          </div>
+        </div>
+
+        <!-- TAB 3: CYLINDER PHOTO PROOF -->
+        <div id="proofTabContent_photo" class="proof-tab-content" style="display:none;">
+          <input type="file" id="deliveryPhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="handleDeliveryPhotoSelect(event)">
+          <div style="background:#f8fafc;border:2px dashed #93c5fd;border-radius:12px;padding:20px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#dbeafe;color:#2563eb;display:inline-flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:8px;">
+              <i class="fas fa-camera"></i>
+            </div>
+            <div style="font-weight:800;font-size:0.95rem;color:#1e293b;margin-bottom:4px;">Delivered Cylinder / Receipt Photo</div>
+            <p style="font-size:0.78rem;color:#64748b;margin:0 0 14px 0;">Take doorstep delivery photo as undeniable delivery proof</p>
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('deliveryPhotoInput').click()" style="background:#2563eb;font-weight:700;padding:8px 18px;">
+              <i class="fas fa-camera-retro"></i> Open Mobile Camera / Gallery
+            </button>
+          </div>
+
+          <!-- Photo Preview Container -->
+          <div id="photoProofPreviewContainer" style="display:none;margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center;">
+            <img id="photoProofImg" style="max-height:160px;max-width:100%;border-radius:8px;border:2px solid #10b981;box-shadow:0 4px 12px rgba(0,0,0,0.08);object-fit:cover;" />
+            <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:8px;">
+              <span id="photoProofSizeBadge" style="font-size:0.75rem;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:12px;font-weight:700;"></span>
+              <button type="button" class="btn btn-outline btn-sm" onclick="removePhotoProof()" style="color:#dc2626;border-color:#fca5a5;padding:2px 8px;font-size:0.75rem;">
+                <i class="fas fa-trash-alt"></i> Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optional Delivery Notes -->
+        <div style="margin-top:1.15rem;border-top:1px dashed #e2e8f0;padding-top:10px;">
+          <input type="text" id="deliveryModalNotes" class="form-control" placeholder="Delivery notes / Remark (Optional, e.g. Paid cash / Empty received)" style="font-size:0.82rem;padding:7px 10px;">
         </div>
       `;
 
       document.getElementById('detailsModalBody').innerHTML = markup;
       document.getElementById('detailsModalFooter').innerHTML = `
-        <button class="btn btn-success" onclick="submitResolutionNoSign(${id})"><i class="fas fa-check-circle"></i> Mark Delivered (Without Signature)</button>
-        <button class="btn btn-primary" onclick="submitResolution(${id})" style="background:#3b82f6; border:none;"><i class="fas fa-signature"></i> Save With Signature</button>
+        <button class="btn btn-success" onclick="submitResolution(${id})" style="background:#10b981;border:none;font-weight:800;">
+          <i class="fas fa-check-circle"></i> Confirm & Complete Delivery
+        </button>
+        <button class="btn btn-outline" onclick="submitResolutionNoSign(${id})" style="font-size:0.8rem;color:#64748b;border-color:#cbd5e1;">
+          ⚡ Fast Deliver (No Proof)
+        </button>
         <button class="btn btn-secondary" onclick="viewComplaintDetails(${id})">Back</button>
       `;
 
-      // Setup drawing event handlers on HTML5 canvas
-      setTimeout(() => {
-        const canvas = document.getElementById('sigCanvas');
-        canvasContext = canvas.getContext('2d');
-        
-        // Match canvas dimensions to offsetWidth
-        canvas.width = canvas.offsetWidth;
-        canvas.height = 130;
-
-        canvasContext.strokeStyle = '#0f172a';
-        canvasContext.lineWidth = 3;
-        canvasContext.lineCap = 'round';
-
-        // Mouse events
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-
-        // Touch events
-        canvas.addEventListener('touchstart', startDrawingTouch);
-        canvas.addEventListener('touchmove', drawTouch);
-        canvas.addEventListener('touchend', stopDrawing);
-      }, 200);
+      openModal('detailsModal');
+      setTimeout(initSignatureCanvas, 150);
     }
 
-    function startDrawing(e) {
-      sigDrawing = true;
+    function switchProofTab(tabName) {
+      deliveryProofState.activeTab = tabName;
+      document.querySelectorAll('.proof-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.proof-tab-content').forEach(c => c.style.display = 'none');
+      
+      const activeBtn = document.getElementById('proofTabBtn_' + tabName);
+      const activeContent = document.getElementById('proofTabContent_' + tabName);
+      if (activeBtn) activeBtn.classList.add('active');
+      if (activeContent) activeContent.style.display = 'block';
+
+      if (tabName === 'signature') {
+        setTimeout(initSignatureCanvas, 50);
+      }
+    }
+
+    function initSignatureCanvas() {
       const canvas = document.getElementById('sigCanvas');
-      canvasContext.beginPath();
-      canvasContext.moveTo(e.pageX - canvas.getBoundingClientRect().left - window.scrollX, e.pageY - canvas.getBoundingClientRect().top - window.scrollY);
-    }
+      if (!canvas) return;
+      canvasContext = canvas.getContext('2d');
+      
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.offsetWidth || 340;
+      const h = 150;
 
-    function draw(e) {
-      if (!sigDrawing) return;
-      const canvas = document.getElementById('sigCanvas');
-      canvasContext.lineTo(e.pageX - canvas.getBoundingClientRect().left - window.scrollX, e.pageY - canvas.getBoundingClientRect().top - window.scrollY);
-      canvasContext.stroke();
-    }
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvasContext.scale(dpr, dpr);
 
-    function startDrawingTouch(e) {
-      sigDrawing = true;
-      const canvas = document.getElementById('sigCanvas');
-      const touch = e.touches[0];
-      canvasContext.beginPath();
-      canvasContext.moveTo(touch.clientX - canvas.getBoundingClientRect().left, touch.clientY - canvas.getBoundingClientRect().top);
-    }
+      canvasContext.strokeStyle = '#0f172a';
+      canvasContext.lineWidth = 3.5;
+      canvasContext.lineCap = 'round';
+      canvasContext.lineJoin = 'round';
 
-    function drawTouch(e) {
-      if (!sigDrawing) return;
-      e.preventDefault();
-      const canvas = document.getElementById('sigCanvas');
-      const touch = e.touches[0];
-      canvasContext.lineTo(touch.clientX - canvas.getBoundingClientRect().left, touch.clientY - canvas.getBoundingClientRect().top);
-      canvasContext.stroke();
-    }
+      function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: clientX - r.left,
+          y: clientY - r.top
+        };
+      }
 
-    function stopDrawing() {
-      sigDrawing = false;
+      function startDraw(e) {
+        if (e.touches && e.cancelable) e.preventDefault();
+        sigDrawing = true;
+        const pos = getPos(e);
+        canvasContext.beginPath();
+        canvasContext.moveTo(pos.x, pos.y);
+      }
+
+      function onDraw(e) {
+        if (!sigDrawing) return;
+        if (e.touches && e.cancelable) e.preventDefault();
+        const pos = getPos(e);
+        canvasContext.lineTo(pos.x, pos.y);
+        canvasContext.stroke();
+        deliveryProofState.hasSignature = true;
+        const badge = document.getElementById('proofBadge_signature');
+        if (badge) badge.style.display = 'inline-flex';
+        const statusText = document.getElementById('sigStatusText');
+        if (statusText) statusText.innerHTML = '<span style="color:#10b981;font-weight:700;"><i class="fas fa-check-circle"></i> Signature Captured</span>';
+      }
+
+      function stopDraw() {
+        sigDrawing = false;
+      }
+
+      // Pointer events (Mobile touch and mouse)
+      canvas.onpointerdown = startDraw;
+      canvas.onpointermove = onDraw;
+      canvas.onpointerup = stopDraw;
+      canvas.onpointercancel = stopDraw;
+
+      // Touch events
+      canvas.ontouchstart = startDraw;
+      canvas.ontouchmove = onDraw;
+      canvas.ontouchend = stopDraw;
     }
 
     function clearSignatureCanvas() {
       const canvas = document.getElementById('sigCanvas');
-      canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+      if (canvas && canvasContext) {
+        canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+        deliveryProofState.hasSignature = false;
+        const badge = document.getElementById('proofBadge_signature');
+        if (badge) badge.style.display = 'none';
+        const statusText = document.getElementById('sigStatusText');
+        if (statusText) statusText.innerHTML = '<span style="color:#64748b;">Ungli se sign karwayein</span>';
+      }
+    }
+
+    function sendOtpViaWhatsApp(id) {
+      const c = deliveryProofState.consumer;
+      if (!c) return;
+      const cleanMobile = (c.mobile || '').replace(/\D/g, '');
+      const otp = deliveryProofState.otpExpected;
+      const text = `*SHIV SHAKTI HP GAS AGENCY*\n` +
+        `Namaste ${c.consumer_name || 'Customer'},\n` +
+        `Aapka HP Gas cylinder delivery verification OTP code: *${otp}* hai.\n` +
+        `Kripya cylinder delivery boy se receive karne ke baad yeh 4-digit OTP share karein.\n` +
+        `Dhanyawad!`;
+      const waUrl = `https://api.whatsapp.com/send?phone=91${cleanMobile}&text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+      showToast('WhatsApp opened with OTP message');
+    }
+
+    function verifyDeliveryOtp() {
+      const inputEl = document.getElementById('deliveryOtpInput');
+      const feedbackEl = document.getElementById('otpFeedbackMsg');
+      if (!inputEl) return;
+      const val = inputEl.value.trim();
+
+      if (!val || val.length !== 4) {
+        if (feedbackEl) feedbackEl.innerHTML = '<span style="color:#dc2626;"><i class="fas fa-times-circle"></i> Please enter valid 4-digit OTP</span>';
+        showToast('Please enter 4-digit OTP', 'warning');
+        return;
+      }
+
+      if (val === deliveryProofState.otpExpected) {
+        deliveryProofState.otpVerified = true;
+        deliveryProofState.otpCode = val;
+        inputEl.disabled = true;
+        inputEl.style.borderColor = '#10b981';
+        inputEl.style.background = '#f0fdf4';
+        inputEl.style.color = '#15803d';
+
+        if (feedbackEl) {
+          feedbackEl.innerHTML = `<span style="color:#10b981;font-size:0.9rem;"><i class="fas fa-check-circle"></i> OTP [${val}] Verified Successfully!</span>`;
+        }
+        const badge = document.getElementById('proofBadge_otp');
+        if (badge) badge.style.display = 'inline-flex';
+        showToast('OTP verified successfully!');
+      } else {
+        if (feedbackEl) {
+          feedbackEl.innerHTML = `<span style="color:#dc2626;"><i class="fas fa-times-circle"></i> Incorrect OTP. Check with customer!</span>`;
+        }
+        showToast('Incorrect OTP code', 'error');
+      }
+    }
+
+    function handleDeliveryPhotoSelect(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 800;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          
+          deliveryProofState.photoProofData = compressedDataUrl;
+          
+          const previewImg = document.getElementById('photoProofImg');
+          const previewContainer = document.getElementById('photoProofPreviewContainer');
+          const sizeBadge = document.getElementById('photoProofSizeBadge');
+          
+          if (previewImg) previewImg.src = compressedDataUrl;
+          if (sizeBadge) sizeBadge.innerText = Math.round(compressedDataUrl.length * 0.75 / 1024) + ' KB - Ready';
+          if (previewContainer) previewContainer.style.display = 'block';
+
+          const badge = document.getElementById('proofBadge_photo');
+          if (badge) badge.style.display = 'inline-flex';
+          showToast('Photo captured & compressed successfully!');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removePhotoProof() {
+      deliveryProofState.photoProofData = '';
+      const previewContainer = document.getElementById('photoProofPreviewContainer');
+      const fileInput = document.getElementById('deliveryPhotoInput');
+      if (previewContainer) previewContainer.style.display = 'none';
+      if (fileInput) fileInput.value = '';
+      const badge = document.getElementById('proofBadge_photo');
+      if (badge) badge.style.display = 'none';
     }
 
     function submitResolution(id) {
-      const canvas = document.getElementById('sigCanvas');
-      const base64Data = canvas ? canvas.toDataURL() : '';
+      let sigBase64 = '';
+      if (deliveryProofState.hasSignature) {
+        const canvas = document.getElementById('sigCanvas');
+        if (canvas) {
+          sigBase64 = canvas.toDataURL('image/png');
+        }
+      }
+
+      const photoBase64 = deliveryProofState.photoProofData || '';
+      const otpCode = deliveryProofState.otpCode || '';
+      const otpVerified = deliveryProofState.otpVerified || false;
+      const notesEl = document.getElementById('deliveryModalNotes');
+      const deliveryNotes = notesEl ? notesEl.value.trim() : '';
 
       const fd = new FormData();
       fd.append('action', 'resolve_complaint');
       fd.append('id', id);
-      fd.append('signature_data', base64Data);
-
-      const fileInput = document.getElementById('deliveryPhotoFile');
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        fd.append('photo_proof', fileInput.files[0]);
-      }
+      fd.append('signature_data', sigBase64);
+      fd.append('photo_proof_data', photoBase64);
+      fd.append('otp_code', otpCode);
+      fd.append('otp_verified', otpVerified ? 'true' : 'false');
+      fd.append('delivery_notes', deliveryNotes);
+      fd.append('delivery_mode', (sigBase64 || photoBase64 || otpVerified) ? 'with_proof' : 'no_proof');
 
       showLoading(true);
       fetch('?', { method: 'POST', body: fd })
@@ -3127,14 +3496,30 @@
         .then(res => {
           showLoading(false);
           if (res.success) {
-            showToast('Complaint resolved successfully!');
+            const proofsCaptured = [];
+            if (sigBase64) proofsCaptured.push('✍️ Screen Sign');
+            if (otpVerified) proofsCaptured.push('🔢 Customer OTP');
+            if (photoBase64) proofsCaptured.push('📸 Cylinder Photo');
+            const summary = proofsCaptured.length > 0 ? `Proof: <b>${proofsCaptured.join(', ')}</b>` : 'Fast Delivery Recorded';
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Delivery Confirmed! 🎉',
+              html: `<div style="font-size:0.95rem;color:#334155;margin-top:6px;">Case <b>#${id}</b> marked Delivered.<br><span style="font-size:0.85rem;color:#10b981;font-weight:700;">${summary}</span></div>`,
+              timer: 2400,
+              showConfirmButton: false
+            });
             closeModal('detailsModal');
             loadComplaints(State.activePage);
+            if (State.currentView === 'history') loadHistory();
           } else {
-            showToast(res.error || 'Failed to resolve complaint', 'error');
+            showToast(res.error || res.message || 'Failed to deliver complaint', 'error');
           }
         })
-        .catch(() => { showLoading(false); showToast('Network error', 'error'); });
+        .catch(err => {
+          showLoading(false);
+          showToast('Network error: ' + (err.message || ''), 'error');
+        });
     }
 
     function submitResolutionNoSign(id) {
@@ -3142,11 +3527,10 @@
       fd.append('action', 'resolve_complaint');
       fd.append('id', id);
       fd.append('signature_data', '');
-
-      const fileInput = document.getElementById('deliveryPhotoFile');
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        fd.append('photo_proof', fileInput.files[0]);
-      }
+      fd.append('photo_proof_data', '');
+      fd.append('otp_code', '');
+      fd.append('otp_verified', 'false');
+      fd.append('delivery_mode', 'no_proof');
 
       showLoading(true);
       fetch('?', { method: 'POST', body: fd })
@@ -3154,14 +3538,18 @@
         .then(res => {
           showLoading(false);
           if (res.success) {
-            showToast('Complaint resolved!');
+            showToast('Case marked Delivered (Fast Deliver)!');
             closeModal('detailsModal');
             loadComplaints(State.activePage);
+            if (State.currentView === 'history') loadHistory();
           } else {
-            showToast(res.error || 'Failed to resolve', 'error');
+            showToast(res.error || res.message || 'Failed to mark delivered', 'error');
           }
         })
-        .catch(() => { showLoading(false); showToast('Network error', 'error'); });
+        .catch(() => {
+          showLoading(false);
+          showToast('Network error', 'error');
+        });
     }
 
     // VENDOR ASSIGNMENT METHODS
@@ -3310,7 +3698,16 @@
               <td style="max-width:180px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;" title="${escapeHtml(r.address)}" class="hide-mobile">${escapeHtml(r.address)}</td>
               <td>${escapeHtml(r.complaint)}</td>
               <td style="font-weight:600;" class="hide-mobile">${escapeHtml(r.vendor || '-')}</td>
-              <td><span class="badge badge-delivered"><i class="fas fa-check-double"></i> ${r.status}</span></td>
+              <td>
+                <span class="badge badge-delivered"><i class="fas fa-check-double"></i> ${r.status}</span>
+                ${(() => {
+                  const pills = [];
+                  if (r.signature_url) pills.push('<span title="Digital Signature Proof" style="font-size:0.65rem;background:#eff6ff;color:#2563eb;padding:1px 4px;border-radius:4px;font-weight:700;">✍️ Sign</span>');
+                  if (r.photo_proof_url) pills.push('<span title="Cylinder Photo Proof" style="font-size:0.65rem;background:#fdf4ff;color:#9333ea;padding:1px 4px;border-radius:4px;font-weight:700;">📸 Photo</span>');
+                  if (r.fail_notes && r.fail_notes.includes('OTP Verified')) pills.push('<span title="OTP Verified" style="font-size:0.65rem;background:#ecfdf5;color:#059669;padding:1px 4px;border-radius:4px;font-weight:700;">🔢 OTP</span>');
+                  return pills.length > 0 ? `<div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;">${pills.join('')}</div>` : '';
+                })()}
+              </td>
               <td>
                 <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;">
                   <i class="fas fa-eye"></i> View
@@ -3982,8 +4379,17 @@
                     <div style="font-size:0.7rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Technician Signature</div>
                   </div>
                   <div style="flex:1; text-align:center;">
-                    <div style="border-bottom:2px solid #334155; margin-bottom:6px; height:40px;"></div>
+                    ${c.signature_url ? `
+                      <div style="border-bottom:2px solid #334155; margin-bottom:6px; height:40px; display:flex; align-items:center; justify-content:center;">
+                        <img src="${c.signature_url}" style="max-height:36px; max-width:140px; object-fit:contain;" />
+                      </div>
+                    ` : `
+                      <div style="border-bottom:2px solid #334155; margin-bottom:6px; height:40px;"></div>
+                    `}
                     <div style="font-size:0.7rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Customer Signature</div>
+                    ${(c.fail_notes && c.fail_notes.includes('OTP Verified')) ? `
+                      <div style="font-size:0.62rem; color:#16a34a; font-weight:800; margin-top:2px;">🛡️ ${(c.fail_notes.match(/OTP Verified:?\s*\d{4}/i) || ['OTP Verified'])[0]}</div>
+                    ` : ''}
                   </div>
                 </div>
               </div>

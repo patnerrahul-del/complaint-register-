@@ -1869,4 +1869,108 @@
       .dashboard-kpi span, .dashboard-kpi small { font-size:0.58rem; }
       .dashboard-panel { padding:0.75rem !important; }
       .dashboard-panel-head .btn { padding:0.3rem 0.45rem; font-size:0.65rem; }
-    }
+    }
+    /* =========================================================
+       DELIVERY BOY MOBILE PROOF SYSTEM (SIGN / OTP / PHOTO)
+       ========================================================= */
+    .delivery-proof-header {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 1rem;
+    }
+    .proof-tabs-container {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 5px;
+      border-radius: 10px;
+      margin-bottom: 1.15rem;
+    }
+    .proof-tab-btn {
+      flex: 1;
+      padding: 9px 8px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-weight: 700;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .proof-tab-btn:hover {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    .proof-tab-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .proof-ready-badge {
+      background: #10b981;
+      color: white;
+      border-radius: 50%;
+      width: 17px;
+      height: 17px;
+      font-size: 10px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 2px;
+    }
+    .sig-canvas-box {
+      position: relative;
+      background: #ffffff;
+      border: 2px dashed #94a3b8;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+    }
+    #sigCanvas {
+      display: block;
+      width: 100%;
+      height: 150px;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    .sig-guide-line {
+      position: absolute;
+      bottom: 22px;
+      left: 15px;
+      right: 15px;
+      border-bottom: 1px dashed #cbd5e1;
+      pointer-events: none;
+      text-align: center;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      padding-bottom: 3px;
+      user-select: none;
+    }
+    .otp-big-input {
+      width: 190px;
+      height: 50px;
+      font-size: 1.7rem;
+      letter-spacing: 10px;
+      text-align: center;
+      font-weight: 800;
+      color: #1e293b;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      outline: none;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+    }
+    .otp-big-input:focus {
+      border-color: #2563eb;
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
