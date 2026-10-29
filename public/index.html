@@ -2496,7 +2496,7 @@
         ` : '';
 
         const cleanMobile = (r.mobile || '').replace(/\D/g, '');
-        const callBtn = cleanMobile ? `<a href="tel:${cleanMobile}" class="btn btn-outline btn-sm" style="color:#2563eb; font-weight:700; padding:2px 8px; margin-right:4px;" title="Call Consumer"><i class="fas fa-phone-alt"></i></a>` : '';
+        const callBtn = cleanMobile ? `<button type="button" onclick="promptCallConsumer('${cleanMobile}', '${escapeHtml(r.consumer_name)}')" class="btn btn-outline btn-sm" style="color:#2563eb; font-weight:700; padding:2px 8px; margin-right:4px;" title="📞 ${cleanMobile}"><i class="fas fa-phone-alt"></i></button>` : '';
         const waBtn = `<button onclick="shareComplaintViaWhatsApp(${r.id}, '${cleanMobile}')" class="btn btn-outline btn-sm" style="color:#16a34a; font-weight:700; padding:2px 8px; margin-right:4px;" title="Send & Copy to WhatsApp"><i class="fab fa-whatsapp"></i></button>`;
         const mapBtn = r.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}" target="_blank" class="btn btn-outline btn-sm" style="color:#ea580c; font-weight:700; padding:2px 8px; margin-right:4px;" title="Google Maps Navigation"><i class="fas fa-map-marker-alt"></i></a>` : '';
 
@@ -2611,6 +2611,85 @@
       if (banner) banner.style.display = 'none';
       document.getElementById('complaintModalTitle').innerText = 'New Complaint';
       openModal('complaintModal');
+    }
+
+    function openEditComplaintModal(id) {
+      closeModal('detailsModal');
+      let c = (State.activeRows || []).find(x => String(x.id) === String(id)) || 
+              (State.histRows || []).find(x => String(x.id) === String(id));
+
+      const populateAndShow = (item) => {
+        document.getElementById('c_id').value = item.id;
+        document.getElementById('c_no').value = item.consumer_number || '';
+        document.getElementById('c_name').value = item.consumer_name || '';
+        document.getElementById('c_mob').value = item.mobile || '';
+        document.getElementById('c_addr').value = item.address || '';
+        if (document.getElementById('c_src')) {
+          document.getElementById('c_src').value = item.source || 'OFFICE PHONE';
+        }
+        document.getElementById('c_comp').value = item.complaint || '';
+        if (document.getElementById('c_tag')) {
+          document.getElementById('c_tag').value = item.tag || '';
+        }
+        if (document.getElementById('cStatusBlock')) {
+          document.getElementById('cStatusBlock').style.display = 'block';
+          document.getElementById('c_status').value = item.status || 'Pending';
+        }
+        const banner = document.getElementById('consumerHistoryBanner');
+        if (banner) banner.style.display = 'none';
+        document.getElementById('complaintModalTitle').innerText = 'Edit Complaint #' + item.id;
+        openModal('complaintModal');
+      };
+
+      if (!c) {
+        showLoading(true);
+        fetch(`?action=get_complaint_details&id=${id}`)
+          .then(r => r.json())
+          .then(res => {
+            showLoading(false);
+            if (res.success && res.complaint) {
+              populateAndShow(res.complaint);
+            } else {
+              showToast('Complaint not found', 'error');
+            }
+          })
+          .catch(() => { showLoading(false); showToast('Network error', 'error'); });
+      } else {
+        populateAndShow(c);
+      }
+    }
+
+    function promptCallConsumer(mobile, name) {
+      if (!mobile) {
+        showToast('Mobile number not available', 'warning');
+        return;
+      }
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobileDevice) {
+        window.location.href = 'tel:' + mobile;
+        return;
+      }
+
+      Swal.fire({
+        title: '📞 ' + mobile,
+        html: `
+          <div style="font-size:0.95rem;color:#334155;margin-bottom:1.2rem;">
+            Consumer: <b>${escapeHtml(name || 'Consumer')}</b>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${mobile}').then(()=>showToast('Number copied: ${mobile}')); Swal.close();" style="padding:10px 18px;font-weight:800;background:#2563eb;border-radius:8px;">
+              <i class="fas fa-copy"></i> Copy Number
+            </button>
+            <a href="tel:${mobile}" class="btn btn-success" style="padding:10px 18px;font-weight:800;background:#10b981;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+              <i class="fas fa-phone-alt"></i> Call via App
+            </a>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Close',
+        cancelButtonColor: '#64748b'
+      });
     }
 
     function submitComplaintForm() {
@@ -3759,9 +3838,9 @@
             html += `<tr style="border-bottom:1px solid #f1f5f9;background:${rowBg};">
               <td style="padding:10px;font-weight:700;">${rankLabel}</td>
               <td style="padding:10px;font-weight:800;color:#0f172a;">${escapeHtml(v.vendor)}</td>
-              <td style="padding:10px;text-align:center;">${v.assigned}</td>
-              <td style="padding:10px;text-align:center;color:#10b981;font-weight:700;">${v.resolved}</td>
-              <td style="padding:10px;text-align:center;color:#ef4444;font-weight:700;">${v.late}</td>
+              <td style="padding:10px;text-align:center;">${v.assigned ?? v.total_assigned ?? 0}</td>
+              <td style="padding:10px;text-align:center;color:#10b981;font-weight:700;">${v.resolved ?? v.total_resolved ?? 0}</td>
+              <td style="padding:10px;text-align:center;color:#ef4444;font-weight:700;">${v.late ?? v.total_late ?? 0}</td>
               <td style="padding:10px;text-align:center;">
                 <span style="font-weight:800;font-size:1rem;color:${scoreColor};">${v.score}</span>
                 <span style="font-size:0.7rem;color:#94a3b8;">/100</span>

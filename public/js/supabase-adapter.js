@@ -294,21 +294,36 @@ async function handleSupabaseAction(urlStr, options) {
       ]);
       const vendors = vendorsRes.data || [];
       const comps = compsRes.data || [];
-      const rows = vendors.map((v, i) => {
+      const now = Date.now();
+
+      const rows = vendors.map(v => {
         const vComps = comps.filter(c => c.vendor_id === v.id || (c.vendor && c.vendor.toLowerCase() === v.name.toLowerCase()));
         const resolved = vComps.filter(c => ['Delivered', 'Resolved', 'Closed'].includes(c.status)).length;
         const assigned = vComps.length;
-        const score = assigned > 0 ? Math.round((resolved / assigned) * 100) : 100;
+        const late = vComps.filter(c => {
+          const created = new Date(c.created_at).getTime();
+          const resTime = c.resolved_at ? new Date(c.resolved_at).getTime() : now;
+          return (resTime - created) > (48 * 3600 * 1000);
+        }).length;
+
+        const score = assigned > 0 ? Math.max(0, Math.round(((resolved - (late * 0.5)) / assigned) * 100)) : 100;
         return {
-          rank: i + 1,
           name: v.name,
           vendor: v.name,
+          assigned: assigned,
+          resolved: resolved,
+          late: late,
           total_assigned: assigned,
           total_resolved: resolved,
-          total_late: 0,
-          score: score
+          total_late: late,
+          score: Math.min(100, Math.max(0, score))
         };
       });
+
+      // Sort by score descending
+      rows.sort((a, b) => b.score - a.score || b.resolved - a.resolved);
+      rows.forEach((r, idx) => { r.rank = idx + 1; });
+
       return { success: true, rows };
     }
 
