@@ -231,22 +231,19 @@
           <div class="nav-item" onclick="switchView('consumers', this)">
             <i class="fas fa-users"></i> <span>Consumer Registry</span>
           </div>
-        <!-- endif -->
-        
           <div class="nav-item" onclick="switchView('employees', this)">
             <i class="fas fa-users-cog"></i> <span>Employee Management</span>
           </div>
           <div class="nav-item" onclick="switchView('settings', this)">
             <i class="fas fa-cog"></i> <span>Settings Console</span>
           </div>
-        <!-- endif -->
+        </div>
         <div class="nav-item" onclick="openAboutModal()">
           <i class="fas fa-info-circle" style="color: #6366f1 !important;"></i> <span>About & System Help</span>
         </div>
         <div class="nav-item" onclick="openChangePasswordModal()" style="cursor: pointer;">
           <i class="fas fa-key" style="color: #f59e0b !important;"></i> <span>Change Password</span>
         </div>
-      </div>
 
 
 
@@ -364,7 +361,7 @@
               <i class="fas fa-route"></i> 🗺️ Route Optimizer
             </button>
           <!-- endif -->
-          <button class="btn btn-outline" onclick="triggerCsvExport()">
+          <button class="btn btn-outline" id="headerCsvBtn" onclick="triggerCsvExport()">
             <i class="fas fa-file-csv"></i> CSV
           </button>
           <button class="btn btn-outline" onclick="triggerPrint()">
@@ -1884,10 +1881,8 @@
           const avatar = document.getElementById('avatarLetter');
           if (avatar) avatar.innerText = (res.user.name || 'A').charAt(0).toUpperCase();
 
+          checkAuth();
           Swal.fire({ icon: 'success', title: 'Welcome!', text: 'Login successful', timer: 800, showConfirmButton: false });
-          
-          loadSystemData();
-          switchView('dashboard');
         } else {
           Swal.fire({ icon: 'error', title: 'Login Failed', text: res?.message || 'Invalid username or password' });
         }
@@ -1965,7 +1960,7 @@
         if (hash && ['dashboard', 'active-registry', 'history', 'vendors', 'reports', 'analytics', 'export', 'employees', 'settings', 'consumers'].includes(hash)) {
           switchView(hash);
         } else {
-          switchView('dashboard');
+          switchView(isDelivery ? 'active-registry' : 'dashboard');
         }
       }
     }
@@ -2611,6 +2606,11 @@
         const callBtn = cleanMobile ? `<button type="button" onclick="promptCallConsumer('${cleanMobile}', '${escapeHtml(r.consumer_name)}')" class="btn btn-outline btn-sm" style="color:#2563eb; font-weight:700; padding:2px 8px; margin-right:4px;" title="📞 ${cleanMobile}"><i class="fas fa-phone-alt"></i></button>` : '';
         const waBtn = `<button onclick="shareComplaintViaWhatsApp(${r.id}, '${cleanMobile}')" class="btn btn-outline btn-sm" style="color:#16a34a; font-weight:700; padding:2px 8px; margin-right:4px;" title="Send & Copy to WhatsApp"><i class="fab fa-whatsapp"></i></button>`;
         const mapBtn = r.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}" target="_blank" class="btn btn-outline btn-sm" style="color:#ea580c; font-weight:700; padding:2px 8px; margin-right:4px;" title="Google Maps Navigation"><i class="fas fa-map-marker-alt"></i></a>` : '';
+        const canReopen = State.user && (State.user.role === 'Admin' || State.user.role === 'Manager');
+        const isCaseDone = (r.status === 'Delivered' || r.status === 'Resolved' || r.status === 'Closed');
+        const reopenBtn = (canReopen && isCaseDone)
+          ? `<button class="btn btn-warning btn-sm" onclick="promptReopenCase(${r.id}, '${escapeHtml(r.consumer_name)}')" style="font-weight:700; margin-left:4px; background:#fef3c7 !important; color:#b45309 !important; border:1px solid #fcd34d !important;" title="Reopen Closed Case"><i class="fas fa-undo"></i> Reopen</button>`
+          : '';
         const deleteBtn = (State.user && State.user.role === 'Admin')
           ? `<button class="btn btn-danger btn-sm" onclick="deleteComplaint(${r.id})" style="padding: 4px 8px; margin-left: 4px; font-weight: 700; background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important;" title="Delete Complaint"><i class="fas fa-trash-alt"></i></button>`
           : '';
@@ -2653,7 +2653,7 @@
             <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;" title="View Details">
               <i class="fas fa-eye"></i> View
             </button>
-            ${deleteBtn}
+            ${reopenBtn}${deleteBtn}
           </td>
         `;
         tbody.appendChild(tr);
@@ -3210,6 +3210,9 @@
         footerHtml += `<button class="btn btn-outline" onclick="openReportIssueModal(${c.id}, '${escapeHtml(c.consumer_name)}')" style="color:#ef4444; border-color:#fca5a5;"><i class="fas fa-exclamation-triangle"></i> Report Issue</button>`;
       }
       
+      if (!isUnresolved && State.user && (State.user.role === 'Admin' || State.user.role === 'Manager')) {
+        footerHtml += `<button class="btn btn-warning" onclick="promptReopenCase(${c.id}, '${escapeHtml(c.consumer_name)}')" style="font-weight:700;"><i class="fas fa-undo"></i> Reopen Case</button>`;
+      }
       footerHtml += `<button class="btn btn-outline" onclick="copyComplaintText(${c.id})"><i class="fab fa-whatsapp"></i> Copy Text</button>`;
       footerHtml += `<button class="btn btn-outline" onclick="printComplaintSlip(${c.id})"><i class="fas fa-print"></i> Slip</button>`;
       
@@ -3978,10 +3981,11 @@
                   return pills.length > 0 ? `<div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;">${pills.join('')}</div>` : '';
                 })()}
               </td>
-              <td>
+              <td style="white-space:nowrap;">
                 <button class="btn btn-primary btn-sm" onclick="viewComplaintDetails(${r.id})" style="background:#0f172a !important; color:#ffffff !important; border:none !important; font-weight:700;">
                   <i class="fas fa-eye"></i> View
                 </button>
+                ${(State.user && (State.user.role === 'Admin' || State.user.role === 'Manager')) ? `<button class="btn btn-warning btn-sm" onclick="promptReopenCase(\${r.id}, '${escapeHtml(r.consumer_name)}')" style="font-weight:700; margin-left:4px; background:#fef3c7 !important; color:#b45309 !important; border:1px solid #fcd34d !important;" title="Reopen Closed Case"><i class="fas fa-undo"></i> Reopen</button>` : ''}
               </td>
             `;
             tbody.appendChild(tr);
@@ -6881,6 +6885,89 @@
     // =========================================================================
     // VENDOR / USER CHANGE PASSWORD SYSTEM
     // =========================================================================
+    
+    // =========================================================================
+    // CASE REOPEN SYSTEM (ADMIN / MANAGER ONLY)
+    // =========================================================================
+    function promptReopenCase(id, consumerName) {
+      const userRole = (State.user?.role || '').toLowerCase();
+      if (userRole !== 'admin' && userRole !== 'manager') {
+        showToast('Only Admin or Manager can reopen a closed case', 'error');
+        return;
+      }
+
+      Swal.fire({
+        title: `🔄 Reopen Case #${id}?`,
+        html: `
+          <div style="font-size:0.92rem;color:#334155;margin-bottom:1rem;text-align:left;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
+            <div><b>Consumer:</b> ${escapeHtml(consumerName || 'Consumer')}</div>
+            <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">Yeh case wapas <b>Pending</b> queue me khul jayega taaki delivery boy isse dubara attend kar sake.</div>
+          </div>
+          <div style="text-align:left;">
+            <label style="font-size:0.8rem;font-weight:700;color:#1e293b;display:block;margin-bottom:4px;">Reopen Reason / Note *</label>
+            <textarea id="swal_reopen_reason" class="swal2-textarea" style="width:100%;margin:0;height:70px;font-size:0.9rem;" placeholder="e.g. Cylinder leakage reported again, gas not delivered, re-verification requested..."></textarea>
+          </div>
+          <div style="text-align:left;margin-top:10px;">
+            <label style="font-size:0.8rem;font-weight:700;color:#1e293b;display:block;margin-bottom:4px;">New Status</label>
+            <select id="swal_reopen_status" class="swal2-select" style="width:100%;margin:0;display:block;">
+              <option value="Pending" selected>Pending (Requires Action)</option>
+              <option value="In Progress">In Progress (Out for Delivery)</option>
+            </select>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '🔄 Confirm Reopen',
+        confirmButtonColor: '#f59e0b',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+          const reason = document.getElementById('swal_reopen_reason')?.value.trim();
+          const newStatus = document.getElementById('swal_reopen_status')?.value || 'Pending';
+          if (!reason) {
+            Swal.showValidationMessage('Kripya case reopen karne ka reason likhein');
+            return false;
+          }
+          return { reason, newStatus };
+        }
+      }).then(res => {
+        if (res.isConfirmed && res.value) {
+          submitReopenCase(id, res.value.reason, res.value.newStatus);
+        }
+      });
+    }
+
+    function submitReopenCase(id, reason, newStatus) {
+      const fd = new FormData();
+      fd.append('action', 'reopen_complaint');
+      fd.append('id', id);
+      fd.append('reason', reason);
+      fd.append('status', newStatus);
+
+      showLoading(true);
+      fetch('?', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+          showLoading(false);
+          if (res.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Case Reopened! 🔄',
+              text: `Case #${id} safaltapoorvak reopen kar diya gaya hai.`,
+              confirmButtonColor: '#10b981'
+            });
+            closeModal('detailsModal');
+            loadComplaints(State.activePage || 1);
+            if (State.currentView === 'history') loadHistory();
+            if (typeof loadSystemData === 'function') loadSystemData();
+          } else {
+            showToast(res.error || res.message || 'Failed to reopen case', 'error');
+          }
+        })
+        .catch(err => {
+          showLoading(false);
+          showToast('Error: ' + err.message, 'error');
+        });
+    }
+
     function openChangePasswordModal() {
       const currentUser = State.user || {};
       const userDisplay = currentUser.name || 'User';

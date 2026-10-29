@@ -1005,6 +1005,36 @@ async function handleSupabaseAction(urlStr, options) {
       return { success: true, message: 'Vendor assigned successfully' };
     }
 
+        case 'reopen_complaint': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const id = postData.id || params.get('id');
+      const reason = postData.reason || '';
+      const newStatus = postData.status || 'Pending';
+
+      const user = currentUser || JSON.parse(localStorage.getItem('gas_user') || 'null');
+      const uRole = (user?.role || '').toLowerCase();
+      if (uRole !== 'admin' && uRole !== 'manager') {
+        return { success: false, message: 'Only Admin or Manager can reopen complaints' };
+      }
+
+      const { data: existing, error: fetchErr } = await db.from('gas_complaints').select('*').eq('id', id).single();
+      if (fetchErr || !existing) return { success: false, message: 'Complaint not found' };
+
+      const timeStr = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const auditNote = `[Reopened by ${user?.name || 'Admin'} on ${timeStr}]: ${reason}`;
+      const updatedNotes = existing.fail_notes ? `${existing.fail_notes} | ${auditNote}` : auditNote;
+
+      const { error } = await db.from('gas_complaints').update({
+        status: newStatus,
+        resolved_at: null,
+        fail_notes: updatedNotes,
+        updated_at: new Date().toISOString()
+      }).eq('id', id);
+
+      if (error) throw error;
+      return { success: true, message: 'Complaint reopened successfully' };
+    }
+
     case 'resolve_complaint': {
       if (!db) return { success: false, message: 'Database offline' };
       const id = postData.id || params.get('id');

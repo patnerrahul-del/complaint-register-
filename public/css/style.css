@@ -2169,3 +2169,205 @@ body.vendor-mode .view-section {
     border-radius: 14px !important;
   }
 }
+
+
+/* =========================================================
+   VIBRANT COLOR PALETTES & COMPREHENSIVE DARK MODE
+   ========================================================= */
+
+/* Default Blue Theme Variables */
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  --primary-glow: rgba(37, 99, 235, 0.25);
+  --primary-light: #eff6ff;
+  --primary-border: #bfdbfe;
+}
+
+/* Cyan Theme */
+body.theme-cyan {
+  --primary: #0891b2 !important;
+  --primary-dark: #0e7490 !important;
+  --primary-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+  --primary-glow: rgba(8, 145, 178, 0.25) !important;
+  --primary-light: #ecfeff !important;
+  --primary-border: #a5f3fc !important;
+}
+
+/* Green Theme */
+body.theme-green {
+  --primary: #059669 !important;
+  --primary-dark: #047857 !important;
+  --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  --primary-glow: rgba(5, 150, 105, 0.25) !important;
+  --primary-light: #ecfdf5 !important;
+  --primary-border: #a7f3d0 !important;
+}
+
+/* Amber Theme */
+body.theme-amber {
+  --primary: #d97706 !important;
+  --primary-dark: #b45309 !important;
+  --primary-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  --primary-glow: rgba(217, 119, 6, 0.25) !important;
+  --primary-light: #fffbeb !important;
+  --primary-border: #fde68a !important;
+}
+
+/* Rose Theme */
+body.theme-rose {
+  --primary: #e11d48 !important;
+  --primary-dark: #be123c !important;
+  --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  --primary-glow: rgba(225, 29, 72, 0.25) !important;
+  --primary-light: #fff1f2 !important;
+  --primary-border: #fecdd3 !important;
+}
+
+/* Theme Accents Applied to Active UI Elements */
+.btn-primary {
+  background: var(--primary-gradient) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
+  color: #ffffff !important;
+}
+.sidebar .sidebar-nav .nav-item.active {
+  background: var(--primary-gradient) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
+}
+.bnav-item.active {
+  color: var(--primary) !important;
+}
+.text-primary {
+  color: var(--primary) !important;
+}
+.vd-token {
+  color: var(--primary) !important;
+}
+
+/* =========================================================
+   COMPREHENSIVE DARK MODE
+   ========================================================= */
+body.theme-dark {
+  --bg-main: #0b1120 !important;
+  --bg-card: #151f32 !important;
+  --text-main: #f1f5f9 !important;
+  --text-muted: #94a3b8 !important;
+  --border-color: #24324d !important;
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+body.theme-dark .app-container {
+  background-color: #0b1120 !important;
+}
+body.theme-dark .main-content {
+  background-color: #0b1120 !important;
+}
+body.theme-dark .content-card,
+body.theme-dark .toolbar,
+body.theme-dark .filter-card,
+body.theme-dark .table-container,
+body.theme-dark .modal-content,
+body.theme-dark .vendor-delivery-card {
+  background: #151f32 !important;
+  border-color: #24324d !important;
+  color: #f1f5f9 !important;
+}
+body.theme-dark .form-control,
+body.theme-dark select,
+body.theme-dark textarea,
+body.theme-dark input[type="text"],
+body.theme-dark input[type="password"],
+body.theme-dark input[type="email"],
+body.theme-dark input[type="date"] {
+  background: #0b1120 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+body.theme-dark table th {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #24324d !important;
+}
+body.theme-dark table td {
+  border-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+body.theme-dark table tr:hover td {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+body.theme-dark .vd-address-box,
+body.theme-dark .vd-complaint-box,
+body.theme-dark .premium-detail-card {
+  background: #0f172a !important;
+  border-color: #24324d !important;
+  color: #cbd5e1 !important;
+}
+body.theme-dark .vd-consumer-name,
+body.theme-dark .page-title h1,
+body.theme-dark h2, body.theme-dark h3, body.theme-dark h4 {
+  color: #f8fafc !important;
+}
+body.theme-dark #clockTime {
+  color: #f8fafc !important;
+}
+body.theme-dark .appearance-menu {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important;
+}
+
+/* =========================================================
+   STRICT VENDOR ISOLATION (Mathematical Guarantee)
+   ========================================================= */
+body.vendor-mode #sidebarAdminItems {
+  display: none !important;
+}
+body.vendor-mode #adminWelcomeBanner {
+  display: none !important;
+}
+body.vendor-mode #adminShortcuts {
+  display: none !important;
+}
+body.vendor-mode #headerAddComplaintBtn {
+  display: none !important;
+}
+body.vendor-mode #headerCsvBtn {
+  display: none !important;
+}
+body.vendor-mode #headerBranchSelector {
+  display: none !important;
+}
+body.vendor-mode #vendorWelcomeBanner {
+  display: flex !important;
+}
+body.vendor-mode #vendorShortcuts {
+  display: block !important;
+}
+body.vendor-mode .pipeline-container {
+  display: none !important;
+}
+body.vendor-mode #statsGrid {
+  display: none !important;
+}
+body.vendor-mode #vendorMobileStats {
+  display: block !important;
+}
+body.vendor-mode #filterSourceGroup,
+body.vendor-mode #filterTagGroup {
+  display: none !important;
+}
+body.vendor-mode #batchActions {
+  display: none !important;
+}
+body.vendor-mode .mobile-fab {
+  display: none !important;
+}
+body.vendor-mode .appearance-control {
+  display: none !important;
+}
+body.vendor-mode #headerAboutBtn {
+  display: none !important;
+}
