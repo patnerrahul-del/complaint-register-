@@ -395,17 +395,30 @@ async function handleSupabaseAction(urlStr, options) {
       const vFilter = await resolveVendorFilter(db, currentUser);
       const [vendorsRes, compsRes] = await Promise.all([
         db.from('gas_vendors').select('*').order('name', { ascending: true }),
-        db.from('gas_complaints').select('*').eq('deleted', 0).neq('status', 'Delivered').neq('status', 'Resolved')
+        db.from('gas_complaints').select('*').eq('deleted', 0)
       ]);
       const vendors = vendorsRes.data || [];
-      const comps = compsRes.data || [];
+      const allComps = compsRes.data || [];
+
       let report = vendors.map(v => {
-        const vComps = comps.filter(c => c.vendor_id === v.id || (c.vendor && c.vendor.toLowerCase() === v.name.toLowerCase()));
+        const vComps = allComps.filter(c => c.vendor_id === v.id || (c.vendor && (
+          c.vendor.toLowerCase().includes(v.name.toLowerCase()) || 
+          v.name.toLowerCase().includes(c.vendor.toLowerCase())
+        )));
+        const open = vComps.filter(c => c.status !== 'Delivered' && c.status !== 'Resolved' && c.status !== 'Closed');
+        const delivered = vComps.filter(c => c.status === 'Delivered' || c.status === 'Resolved');
         return {
           vendor: v,
-          complaints: vComps
+          totalAssigned: vComps.length,
+          assigned: vComps.length,
+          deliveredCount: delivered.length,
+          delivered: delivered.length,
+          openCount: open.length,
+          openComplaints: open,
+          complaints: open
         };
       });
+
       if (vFilter) {
         report = report.filter(r => (vFilter.id && r.vendor.id === vFilter.id) || (vFilter.name && r.vendor.name.toLowerCase().includes(vFilter.name.toLowerCase())));
       }
