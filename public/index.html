@@ -2433,7 +2433,7 @@
       tbody.innerHTML = '';
 
       if (!res.rows || res.rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:1rem;display:block;"></i>No active complaints found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:1rem;display:block;"></i>No active complaints found.</td></tr>';
         document.getElementById('pgInfo').innerText = '0 of 0';
         return;
       }
@@ -2495,9 +2495,11 @@
           <td>
             <input type="checkbox" class="c-sel" value="${r.id}" onchange="updateBatchToolbar()">
           </td>
-          <td style="font-weight:700;color:var(--primary);">
+          <td style="font-weight:700;color:var(--primary); white-space:nowrap;">
             #${r.id}
-            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:normal;">${dateFormatted}${agingBadge}</div>
+          </td>
+          <td class="hide-mobile" style="font-size:0.75rem; color:var(--text-muted); font-weight:600; white-space:nowrap;">
+            ${dateFormatted}${agingBadge}
           </td>
           <td>
             <div style="font-weight:700;font-size:0.9rem;">${escapeHtml(r.consumer_name)}${repeatBadge}</div>
