@@ -451,6 +451,28 @@ async function handleSupabaseAction(urlStr, options) {
       return { success: true, message: 'Employee added successfully', user: data[0] };
     }
 
+    case 'impersonate_user': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const id = params.get('id') || postData.id;
+      const { data, error } = await db.from('gas_users').select('*').eq('id', id).single();
+      if (error || !data) return { success: false, error: 'User not found' };
+      const currentAdmin = localStorage.getItem('gas_user');
+      if (currentAdmin && !localStorage.getItem('gas_impersonating_admin')) {
+        localStorage.setItem('gas_impersonating_admin', currentAdmin);
+      }
+      localStorage.setItem('gas_user', JSON.stringify(data));
+      return { success: true, message: 'Impersonated successfully' };
+    }
+
+    case 'switch_back_to_admin': {
+      const originalAdmin = localStorage.getItem('gas_impersonating_admin');
+      if (originalAdmin) {
+        localStorage.setItem('gas_user', originalAdmin);
+        localStorage.removeItem('gas_impersonating_admin');
+      }
+      return { success: true, message: 'Switched back to Admin' };
+    }
+
     case 'get_consumer_stats': {
       if (!db) return { success: true, total: 23658, dbc: 12450, sbc: 11208, ekyc_completed: 18920, ekyc_pending: 4738, blocked: 0 };
       const countRes = await db.from('gas_consumers').select('id', { count: 'exact', head: true });

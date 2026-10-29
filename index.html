@@ -207,7 +207,7 @@
         <div class="nav-item" onclick="switchView('reports', this)">
           <i class="fas fa-file-invoice"></i> <span class="nav-text-dispatch">Dispatch Sheets</span>
         </div>
-        <div id="adminWelcomeBanner">
+        <div id="sidebarAdminItems">
           <div class="nav-item" onclick="switchView('vendors', this)">
             <i class="fas fa-truck"></i> <span>Vendors Directory</span>
           </div>
@@ -274,7 +274,8 @@
     <!-- Main Content Panel -->
     <main class="main-content">
       
-        <div style="background:linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%); color:#fff; padding:12px 1.5rem; display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; font-weight:700; width:100%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        <!-- Impersonation Banner (Hidden by default, shown only when admin switches to staff view) -->
+        <div id="impersonationBanner" style="display:none; background:linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%); color:#fff; padding:12px 1.5rem; justify-content:space-between; align-items:center; font-size:0.85rem; font-weight:700; width:100%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class="fas fa-user-secret" style="font-size:1.1rem; color:#d8b4fe;"></i>
             <span>Currently impersonating: <b style="color:#f3e8ff;"><span class="user-name-slot">Administrator</span></b> (<span class="user-role-slot">Admin</span>)</span>
@@ -283,7 +284,6 @@
             Switch Back to Admin
           </button>
         </div>
-      <!-- endif -->
       <!-- Print Only Header -->
       <div class="print-only-header">
         <div class="logo-container" id="printHeaderLogo" style="height: 50px; width: 50px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;"></div>
@@ -356,7 +356,7 @@
       <!-- VIEW 1: ACTIVE COMPLAINTS REGISTRY / VENDOR PORTAL -->
       <section id="view-dashboard" class="view-section active">
         <div class="dashboard-welcome">
-          </div><div id="vendorWelcomeBanner" style="display:none;">
+          <div id="vendorWelcomeBanner" style="display:none; width: 100%; justify-content: space-between; align-items: center;">
             <div>
               <span class="dashboard-kicker">Delivery Boy Portal</span>
               <h2>Welcome back, <span class="user-name-slot">Administrator</span> 👋</h2>
@@ -365,14 +365,15 @@
             <button class="btn btn-primary" onclick="optimizeVendorRoute()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
               <i class="fas fa-route"></i> 🗺️ Route Optimizer
             </button>
-          <!-- logo else -->
+          </div>
+          <div id="adminWelcomeBanner" style="display:flex; width: 100%; justify-content: space-between; align-items: center;">
             <div>
               <span class="dashboard-kicker">Operations overview</span>
               <h2>Good to see you, <span class="user-name-slot">Administrator</span></h2>
               <p>Track complaints, dispatch work and service performance.</p>
             </div>
             <button class="btn btn-primary" onclick="openAddComplaintModal()"><i class="fas fa-plus"></i> New Complaint</button>
-          <!-- endif -->
+          </div>
         </div>
         <div class="dashboard-kpis">
           <div class="dashboard-kpi kpi-blue">
@@ -410,10 +411,10 @@
           <div class="content-card dashboard-panel">
             <div class="dashboard-panel-head">
               <div>
-                <span class="dashboard-kicker"></span>
-                <h3></h3>
+                <span class="dashboard-kicker">Live workload</span>
+                <h3>Complaint collection</h3>
               </div>
-              <button class="btn btn-outline btn-sm" onclick="switchView('active-registry', null)"><i class="fas fa-arrow-right"></i></button>
+              <button class="btn btn-outline btn-sm" onclick="switchView('active-registry', null)">View all <i class="fas fa-arrow-right"></i></button>
             </div>
             <div class="dashboard-progress-row"><span><i class="fas fa-clock"></i> Pending</span><strong id="dashPendingLabel">0</strong></div><div class="dashboard-progress"><i id="dashPendingBar"></i></div>
             <div class="dashboard-progress-row"><span><i class="fas fa-route"></i> In progress</span><strong id="dashProgressLabel">0</strong></div><div class="dashboard-progress"><i id="dashProgressBar"></i></div>
@@ -428,33 +429,52 @@
               </div>
               <i class="fas fa-bolt dashboard-bolt"></i>
             </div>
-            
+            <div id="adminShortcuts">
               <button class="dashboard-action" onclick="openAddComplaintModal()"><i class="fas fa-file-circle-plus"></i><span><b>Register complaint</b><small>Create a new service case</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('reports', null)"><i class="fas fa-print"></i><span><b>Dispatch sheets</b><small>Print technician trip lists</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('analytics', null)"><i class="fas fa-chart-line"></i><span><b>Performance charts</b><small>Review service trends</small></span><i class="fas fa-chevron-right"></i></button>
-            <!-- logo else -->
+            </div>
+            <div id="vendorShortcuts" style="display:none;">
               <button class="dashboard-action" onclick="optimizeVendorRoute()"><i class="fas fa-route" style="color:#10b981;"></i><span><b>🗺️ GPS Route Optimizer</b><small>Get Google Maps directions for open deliveries</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('active-registry', null)"><i class="fas fa-truck-loading" style="color:#06b6d4;"></i><span><b>📋 My Active Deliveries</b><small>View pending delivery list & action buttons</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('reports', null)"><i class="fas fa-file-invoice" style="color:#3b82f6;"></i><span><b>📜 Trip Manifest Sheet</b><small>View & print today's trip dispatch sheet</small></span><i class="fas fa-chevron-right"></i></button>
               <button class="dashboard-action" onclick="switchView('history', null)"><i class="fas fa-history" style="color:#8b5cf6;"></i><span><b>✅ Delivery History</b><small>View all past completed deliveries</small></span><i class="fas fa-chevron-right"></i></button>
-            <!-- endif -->
+            </div>
           </div>
         </div>
         <div class="content-card dashboard-panel dashboard-recent">
           <div class="dashboard-panel-head">
             <div>
-              <span class="dashboard-kicker"></span>
-              <h3></h3>
+              <span class="dashboard-kicker">Live Monitor</span>
+              <h3>Recent service activity</h3>
             </div>
             <span class="dashboard-live"><i></i> LIVE</span>
           </div>
           <div class="dashboard-activity">
-            <div><i class="fas fa-inbox"></i><span></span><strong id="dashOpenCases">0</strong></div>
-            <div><i class="fas fa-user-check"></i><span></span><strong id="dashAssignedCases">0</strong></div>
-            <div><i class="fas fa-calendar-check"></i><span></span><strong id="dashResolvedCases">0</strong></div></div></div></div>
+            <div><i class="fas fa-inbox"></i><span>Open cases waiting for action</span><strong id="dashOpenCases">0</strong></div>
+            <div><i class="fas fa-user-check"></i><span>Cases currently assigned</span><strong id="dashAssignedCases">0</strong></div>
+            <div><i class="fas fa-calendar-check"></i><span>Resolved cases in records</span><strong id="dashResolvedCases">0</strong></div>
+          </div>
+        </div>
         <div class="dashboard-chart-grid">
-          <div class="content-card dashboard-panel"><div class="dashboard-panel-head"><div><span class="dashboard-kicker"></span><h3></h3></div></div><div class="dashboard-chart"><canvas id="dashboardStatusChart"></canvas></div></div>
-          <div class="content-card dashboard-panel"><div class="dashboard-panel-head"><div><span class="dashboard-kicker"></span><h3></h3></div></div><div class="dashboard-chart"><canvas id="dashboardTrendChart"></canvas></div></div>
+          <div class="content-card dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="dashboard-kicker">Distribution</span>
+                <h3>Complaint status</h3>
+              </div>
+            </div>
+            <div class="dashboard-chart"><canvas id="dashboardStatusChart"></canvas></div>
+          </div>
+          <div class="content-card dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="dashboard-kicker">Last 7 days</span>
+                <h3>Registration trend</h3>
+              </div>
+            </div>
+            <div class="dashboard-chart"><canvas id="dashboardTrendChart"></canvas></div>
+          </div>
         </div>
       </section>
 
@@ -1798,6 +1818,28 @@
         const avatar = document.getElementById('avatarLetter');
         if (avatar) avatar.innerText = (State.user?.name || 'A').charAt(0).toUpperCase();
 
+        // Check impersonation banner
+        const impBanner = document.getElementById('impersonationBanner');
+        const isImpersonating = !!localStorage.getItem('gas_impersonating_admin');
+        if (impBanner) impBanner.style.display = isImpersonating ? 'flex' : 'none';
+
+        // Role-based visibility
+        const role = (State.user?.role || 'Admin').toLowerCase();
+        const isDelivery = role === 'delivery' || role === 'vendor';
+
+        const vendorBanner = document.getElementById('vendorWelcomeBanner');
+        const adminBanner = document.getElementById('adminWelcomeBanner');
+        if (vendorBanner) vendorBanner.style.display = isDelivery ? 'flex' : 'none';
+        if (adminBanner) adminBanner.style.display = isDelivery ? 'none' : 'flex';
+
+        const vendorShortcuts = document.getElementById('vendorShortcuts');
+        const adminShortcuts = document.getElementById('adminShortcuts');
+        if (vendorShortcuts) vendorShortcuts.style.display = isDelivery ? 'block' : 'none';
+        if (adminShortcuts) adminShortcuts.style.display = isDelivery ? 'none' : 'block';
+
+        const sidebarAdmin = document.getElementById('sidebarAdminItems');
+        if (sidebarAdmin) sidebarAdmin.style.display = isDelivery ? 'none' : 'block';
+
         loadSystemData();
         const hash = window.location.hash.substring(1);
         if (hash && ['dashboard', 'active-registry', 'history', 'vendors', 'reports', 'analytics', 'export', 'employees', 'settings', 'consumers'].includes(hash)) {
@@ -2193,7 +2235,10 @@
         cancelButtonText: 'Stay'
       }).then(r => {
         if (r.isConfirmed) {
-          window.location.href = '?action=logout';
+          localStorage.removeItem('gas_user');
+          localStorage.removeItem('gas_impersonating_admin');
+          window.location.hash = '';
+          window.location.reload();
         }
       });
     }
