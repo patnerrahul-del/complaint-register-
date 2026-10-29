@@ -2488,7 +2488,7 @@
 
         const cleanMobile = (r.mobile || '').replace(/\D/g, '');
         const callBtn = cleanMobile ? `<a href="tel:${cleanMobile}" class="btn btn-outline btn-sm" style="color:#2563eb; font-weight:700; padding:2px 8px; margin-right:4px;" title="Call Consumer"><i class="fas fa-phone-alt"></i></a>` : '';
-        const waBtn = cleanMobile ? `<a href="https://wa.me/91${cleanMobile}?text=${encodeURIComponent('Hello ' + (r.consumer_name||'') + ', regarding your HP Gas complaint #' + r.id)}" target="_blank" class="btn btn-outline btn-sm" style="color:#16a34a; font-weight:700; padding:2px 8px; margin-right:4px;" title="WhatsApp Consumer"><i class="fab fa-whatsapp"></i></a>` : '';
+        const waBtn = `<button onclick="shareComplaintViaWhatsApp(${r.id}, '${cleanMobile}')" class="btn btn-outline btn-sm" style="color:#16a34a; font-weight:700; padding:2px 8px; margin-right:4px;" title="Send & Copy to WhatsApp"><i class="fab fa-whatsapp"></i></button>`;
         const mapBtn = r.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}" target="_blank" class="btn btn-outline btn-sm" style="color:#ea580c; font-weight:700; padding:2px 8px; margin-right:4px;" title="Google Maps Navigation"><i class="fas fa-map-marker-alt"></i></a>` : '';
 
         tr.innerHTML = `
@@ -2629,7 +2629,13 @@
         .then(res => {
           showLoading(false);
           if (res.success) {
-            showToast(id ? 'Complaint updated' : 'Complaint registered successfully');
+            const newCid = res.id || id || '';
+            const waMsg = `🔥 *HP GAS COMPLAINT #${newCid}*\n👤 *Consumer:* ${name}\n🔢 *Acc No:* ${no || 'N/A'}\n📱 *Mobile:* ${mob}\n📍 *Address:* ${addr}\n📝 *Problem:* ${comp}\n🏛️ *Agency:* ${State.company?.company_name || 'Shiv Shakti Hp Gas Agency'}`;
+
+            // Auto-copy full WhatsApp complaint details to clipboard
+            copyTextToClipboard(waMsg, '📋 Complaint saved & copied to clipboard for WhatsApp!');
+
+            showToast(id ? 'Complaint updated & copied to clipboard!' : 'Complaint registered & WhatsApp data copied! 📋', 'success');
             closeModal('complaintModal');
             if (!id) {
               clearActiveFilters();
@@ -3580,22 +3586,57 @@
     }
 
     function copyTextToClipboard(text, successMessage) {
-      if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text).then(() => showToast(successMessage));
+      function showSuccess() {
+        if (successMessage) showToast(successMessage, 'success');
       }
 
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      const copied = document.execCommand('copy');
-      textarea.remove();
-      if (!copied) return Promise.reject(new Error('Clipboard copy failed'));
-      showToast(successMessage);
-      return Promise.resolve();
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text)
+          .then(() => {
+            showSuccess();
+            return Promise.resolve();
+          })
+          .catch(() => fallbackCopy(text, showSuccess));
+      } else {
+        return fallbackCopy(text, showSuccess);
+      }
+    }
+
+    function fallbackCopy(text, onSuccess) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        ta.setAttribute('readonly', '');
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          if (onSuccess) onSuccess();
+          return Promise.resolve();
+        }
+      } catch (e) {}
+      return Promise.reject(new Error('Copy failed'));
+    }
+
+    function shareComplaintViaWhatsApp(id, mobile) {
+      let r = (State.activeRows || []).find(x => String(x.id) === String(id));
+      const coName = State.company?.company_name || 'Shiv Shakti Hp Gas Agency';
+      let msg = '';
+      if (r) {
+        msg = `🔥 *HP GAS COMPLAINT #${r.id}*\n👤 *Consumer:* ${r.consumer_name || ''}\n🔢 *Acc No:* ${r.consumer_number || 'N/A'}\n📱 *Mobile:* ${r.mobile || ''}\n📍 *Address:* ${r.address || ''}\n📝 *Problem:* ${r.complaint || ''}\n🚚 *Staff:* ${r.vendor || 'Unassigned'}\n🏛️ *Agency:* ${coName}`;
+      } else {
+        msg = `HP Gas Complaint #${id}`;
+      }
+
+      copyTextToClipboard(msg, '📋 Complaint copied to clipboard!');
+      const cleanMob = (mobile || '').replace(/\D/g, '');
+      const waUrl = cleanMob ? `https://wa.me/91${cleanMob}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
     }
 
     function copyManifestText(vId) {

@@ -702,6 +702,25 @@ async function handleSupabaseAction(urlStr, options) {
       return { success: true, complaint: data };
     }
 
+    case 'get_clipboard_text': {
+      if (!db) return { success: false, message: 'Database offline' };
+      const id = params.get('id') || postData.id;
+      const { data, error } = await db.from('gas_complaints').select('*').eq('id', id).single();
+      if (error || !data) return { success: false, message: 'Complaint not found' };
+
+      const c = data;
+      const text = `🔥 *HP GAS COMPLAINT #${c.id}*
+👤 *Consumer:* ${c.consumer_name || 'N/A'}
+🔢 *Acc No:* ${c.consumer_number || 'N/A'}
+📱 *Mobile:* ${c.mobile || 'N/A'}
+📍 *Address:* ${c.address || 'N/A'}
+📝 *Problem:* ${c.complaint || 'N/A'}
+🚚 *Staff:* ${c.vendor || 'Unassigned'}
+📅 *Date:* ${new Date(c.created_at).toLocaleString('en-IN')}`;
+
+      return { success: true, text };
+    }
+
     case 'add_complaint': {
       if (!db) return { success: false, message: 'Database offline' };
       const complaintData = {
