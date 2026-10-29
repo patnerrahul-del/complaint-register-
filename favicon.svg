@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="flame" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Shield -->
+  <rect width="64" height="64" rx="16" fill="url(#body)"/>
+  <!-- Gas Cylinder / Flame Motif -->
+  <path d="M32 10c2 7.5-4.5 11.5-2.5 17 2 4.5 7.5 5.5 7.5 11 0 6.5-5 12-11 12s-11-5.5-11-12c0-7.5 5.5-13.5 8-18 1-2.2 2-6 2-9 1.5 2.5 4.5 5 7 9z" fill="url(#flame)"/>
+  <!-- Inner Flame Core -->
+  <path d="M32 29c1.2 3.2-2.5 6-1.2 8.5 1.2 2.2 3.5 2.8 3.5 5 0 3.3-2.5 6-5.8 6s-5.8-2.7-5.8-6c0-4 3-6.8 4.2-9 .6-1.1 1.2-3.3 1.2-4.5.6 1.1 2.5 2.2 3.9 5z" fill="#fef08a"/>
+</svg>
