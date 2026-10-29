@@ -139,14 +139,25 @@ async function handleSupabaseAction(urlStr, options) {
       // Backdoors / Fallbacks
       if ((username === 'admin' && (password === 'password' || password === 'admin')) ||
           (username === 'sshppandaul@gmail.com' && password === '123456')) {
-        const adminUser = {
+        let adminUser = {
           id: 1,
           username: username,
           name: 'Administrator',
           role: 'Admin',
           permissions: '*',
-          branch_id: 1
+          branch_id: 1,
+          profile_photo: null
         };
+        if (db) {
+          try {
+            const { data: dbAdmin } = await db.from('gas_users').select('*').eq('id', 1).single();
+            if (dbAdmin) {
+              if (dbAdmin.name) adminUser.name = dbAdmin.name;
+              if (dbAdmin.profile_photo) adminUser.profile_photo = dbAdmin.profile_photo;
+              if (dbAdmin.mobile) adminUser.mobile = dbAdmin.mobile;
+            }
+          } catch(e) {}
+        }
         localStorage.setItem('gas_user', JSON.stringify(adminUser));
         return { success: true, user: adminUser };
       }
@@ -177,6 +188,7 @@ async function handleSupabaseAction(urlStr, options) {
         name: u.name,
         role: u.role || 'Employee',
         mobile: u.mobile || '',
+        profile_photo: u.profile_photo || null,
         permissions: u.permissions || '*',
         branch_id: u.branch_id || 1
       };
@@ -581,8 +593,12 @@ async function handleSupabaseAction(urlStr, options) {
         branch_id: postData.branch_id || 1,
         permissions: postData.permissions || ''
       };
-      if (postData.profile_photo && postData.profile_photo !== 'default-photo.png') {
-        updateData.profile_photo = postData.profile_photo;
+      if (postData.profile_photo) {
+        if (postData.profile_photo === 'default-photo.png') {
+          updateData.profile_photo = null;
+        } else {
+          updateData.profile_photo = postData.profile_photo;
+        }
       }
       if (postData.password && postData.password.trim()) {
         updateData.password = await sha256(postData.password.trim());
@@ -619,22 +635,51 @@ async function handleSupabaseAction(urlStr, options) {
       const updateData = {};
       if (postData.name) updateData.name = postData.name.trim();
       if (postData.mobile !== undefined) updateData.mobile = postData.mobile.trim();
-      if (postData.profile_photo && postData.profile_photo !== 'default-photo.png') {
-        updateData.profile_photo = postData.profile_photo;
+      if (postData.profile_photo) {
+        if (postData.profile_photo === 'default-photo.png') {
+          updateData.profile_photo = null;
+        } else {
+          updateData.profile_photo = postData.profile_photo;
+        }
       }
       if (postData.password && postData.password.trim()) {
         updateData.password = await sha256(postData.password.trim());
       }
 
-      if (user.id && user.id !== 1) {
+      // Update in gas_users for all users including Admin (id 1)
+      if (user.id) {
         const { error } = await db.from('gas_users').update(updateData).eq('id', user.id);
-        if (error) console.warn('Profile update warning:', error);
+        if (error) {
+          console.warn('Profile update warning:', error);
+          if (user.username) {
+            await db.from('gas_users').update(updateData).eq('username', user.username);
+          }
+        }
+      } else if (user.username) {
+        await db.from('gas_users').update(updateData).eq('username', user.username);
+      }
+
+      // If user is a Vendor, also sync name and mobile to gas_vendors
+      if (user.role === 'Vendor' || user.role === 'Delivery') {
+        try {
+          const vUpdate = {};
+          if (updateData.name) vUpdate.name = updateData.name;
+          if (updateData.mobile) vUpdate.mobile = updateData.mobile;
+          if (Object.keys(vUpdate).length > 0) {
+            await db.from('gas_vendors').update(vUpdate).or(`name.eq."${user.name}",mobile.eq."${user.mobile || ''}"`);
+          }
+        } catch(e) {
+          console.warn('Vendor sync notice:', e);
+        }
       }
 
       const updatedUser = { ...user, ...updateData };
       delete updatedUser.password;
+      if (updateData.profile_photo === null) {
+        delete updatedUser.profile_photo;
+      }
       localStorage.setItem('gas_user', JSON.stringify(updatedUser));
-      return { success: true, message: 'Profile updated successfully' };
+      return { success: true, message: 'Profile updated successfully', user: updatedUser };
     }
 
     case 'impersonate_user': {

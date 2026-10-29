@@ -1551,7 +1551,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Full Display Name *</label>
-          <input type="text" id="my_profile_name" class="form-control" required value="<span class="user-name-slot">Administrator</span>">
+          <input type="text" id="my_profile_name" class="form-control" required value="Administrator">
         </div>
         <div class="form-group">
           <label>Mobile Number</label>
@@ -1878,8 +1878,7 @@
           // Update user names on screen
           document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = res.user.name || 'Administrator');
           document.querySelectorAll('.user-role-slot').forEach(el => el.innerText = res.user.role || 'Admin');
-          const avatar = document.getElementById('avatarLetter');
-          if (avatar) avatar.innerText = (res.user.name || 'A').charAt(0).toUpperCase();
+          renderUserAvatar();
 
           checkAuth();
           Swal.fire({ icon: 'success', title: 'Welcome!', text: 'Login successful', timer: 800, showConfirmButton: false });
@@ -1891,6 +1890,67 @@
         btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In to Portal';
         Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Login failed' });
       }
+    }
+
+    function renderUserAvatar() {
+      const avatar = document.getElementById('avatarLetter');
+      if (!avatar) return;
+      const photo = State.user?.profile_photo;
+      if (photo && photo !== 'default-photo.png') {
+        avatar.innerHTML = `<img src="${photo}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" alt="Profile">
+          <button class="avatar-logout-btn" onclick="event.stopPropagation(); handleLogout();" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>`;
+      } else {
+        const initial = (State.user?.name || 'A').trim().charAt(0).toUpperCase() || 'A';
+        avatar.innerHTML = `${initial}
+          <button class="avatar-logout-btn" onclick="event.stopPropagation(); handleLogout();" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>`;
+      }
+    }
+
+    function compressProfileImage(file, callback) {
+      if (!file) return;
+      if (file.size > 25 * 1024 * 1024) {
+        showToast('Image file too large (max 25MB)', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = function() {
+        showToast('Could not read image file', 'error');
+      };
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 320;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w >= h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          callback(compressedDataUrl);
+        };
+        img.onerror = function() {
+          callback(evt.target.result);
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
     function checkAuth() {
@@ -1912,8 +1972,7 @@
         // Update user slots
         document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = State.user?.name || 'Administrator');
         document.querySelectorAll('.user-role-slot').forEach(el => el.innerText = State.user?.role || 'Admin');
-        const avatar = document.getElementById('avatarLetter');
-        if (avatar) avatar.innerText = (State.user?.name || 'A').charAt(0).toUpperCase();
+        renderUserAvatar();
 
         // Check impersonation banner
         const impBanner = document.getElementById('impersonationBanner');
@@ -5321,22 +5380,15 @@
     }
 
     function previewEmployeeLogo(e) {
-      const file = e.target.files[0];
+      const file = e.target.files && e.target.files[0];
       if (!file) return;
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('Photo file must be under 2MB', 'error');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const base64 = evt.target.result;
+      compressProfileImage(file, function(base64) {
         State.tempEmployeeLogoData = base64;
         const logoPreview = document.getElementById('uLogoPreview');
         if (logoPreview) {
-          logoPreview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover;">`;
+          logoPreview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
         }
-      };
-      reader.readAsDataURL(file);
+      });
     }
 
     function clearEmployeeLogoPreview() {
@@ -5345,7 +5397,8 @@
       if (logoPreview) {
         logoPreview.innerHTML = `<i class="fas fa-user" style="color:#94a3b8; font-size:1.4rem;"></i>`;
       }
-      document.getElementById('uploadEmployeeLogo').value = '';
+      const fileInput = document.getElementById('uploadEmployeeLogo');
+      if (fileInput) fileInput.value = '';
     }
 
     function toggleEmployeeActive(id, currentlyActive) {
@@ -6545,14 +6598,15 @@
 
     function openMyProfileModal() {
       // Re-populate values
-      document.getElementById('my_profile_name').value = State.user.name || '';
-      document.getElementById('my_profile_mobile').value = State.user.mobile || '';
+      document.getElementById('my_profile_name').value = State.user?.name || 'Administrator';
+      document.getElementById('my_profile_mobile').value = State.user?.mobile || '';
       document.getElementById('my_profile_pw').value = '';
       
+      State.tempMyProfilePhotoData = State.user?.profile_photo || '';
       const logoPreview = document.getElementById('myProfileLogoPreview');
       if (logoPreview) {
         if (State.tempMyProfilePhotoData && State.tempMyProfilePhotoData !== 'default-photo.png') {
-          logoPreview.innerHTML = `<img src="${State.tempMyProfilePhotoData}" style="width:100%; height:100%; object-fit:cover;">`;
+          logoPreview.innerHTML = `<img src="${State.tempMyProfilePhotoData}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
         } else {
           logoPreview.innerHTML = `<i class="fas fa-user" style="color:#94a3b8; font-size:1.6rem;"></i>`;
         }
@@ -6561,22 +6615,15 @@
     }
 
     function previewMyProfilePhoto(e) {
-      const file = e.target.files[0];
+      const file = e.target.files && e.target.files[0];
       if (!file) return;
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('Photo file must be under 2MB', 'error');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const base64 = evt.target.result;
+      compressProfileImage(file, function(base64) {
         State.tempMyProfilePhotoData = base64;
         const logoPreview = document.getElementById('myProfileLogoPreview');
         if (logoPreview) {
-          logoPreview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover;">`;
+          logoPreview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
         }
-      };
-      reader.readAsDataURL(file);
+      });
     }
 
     function clearMyProfilePhoto() {
@@ -6585,14 +6632,15 @@
       if (logoPreview) {
         logoPreview.innerHTML = `<i class="fas fa-user" style="color:#94a3b8; font-size:1.6rem;"></i>`;
       }
-      document.getElementById('uploadMyProfilePhoto').value = '';
+      const fileInput = document.getElementById('uploadMyProfilePhoto');
+      if (fileInput) fileInput.value = '';
     }
 
     function submitMyProfileForm() {
       const name = document.getElementById('my_profile_name').value.trim();
       const mobile = document.getElementById('my_profile_mobile').value.trim();
       const pw = document.getElementById('my_profile_pw').value;
-      const photo = State.tempMyProfilePhotoData || 'default-photo.png';
+      const photo = State.tempMyProfilePhotoData !== undefined ? State.tempMyProfilePhotoData : (State.user?.profile_photo || 'default-photo.png');
 
       if (!name) {
         showToast('Name is required', 'warning');
@@ -6604,7 +6652,7 @@
       fd.append('name', name);
       fd.append('mobile', mobile);
       fd.append('password', pw);
-      fd.append('profile_photo', photo);
+      fd.append('profile_photo', photo || 'default-photo.png');
 
       showLoading(true);
       fetch('?', { method: 'POST', body: fd })
@@ -6613,10 +6661,25 @@
           showLoading(false);
           if (res.success) {
             showToast('Profile updated successfully!', 'success');
+            if (res.user) {
+              State.user = res.user;
+              localStorage.setItem('gas_user', JSON.stringify(res.user));
+            } else {
+              State.user.name = name;
+              State.user.mobile = mobile;
+              if (photo && photo !== 'default-photo.png') {
+                State.user.profile_photo = photo;
+              } else if (photo === 'default-photo.png') {
+                delete State.user.profile_photo;
+              }
+              localStorage.setItem('gas_user', JSON.stringify(State.user));
+            }
+            renderUserAvatar();
+            document.querySelectorAll('.user-name-slot').forEach(el => el.innerText = State.user?.name || 'Administrator');
+            document.querySelectorAll('.user-role-slot').forEach(el => el.innerText = State.user?.role || 'Admin');
             closeModal('myProfileModal');
-            window.location.reload();
           } else {
-            showToast(res.error || 'Failed to update profile', 'error');
+            showToast(res.error || res.message || 'Failed to update profile', 'error');
           }
         })
         .catch(err => {
