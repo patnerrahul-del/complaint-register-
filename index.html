@@ -175,10 +175,21 @@
   <div id="dashboardView" style="display: none;">
     
 
-  <!-- Loading Screen -->
+  <!-- Top Slim Neon Progress Bar -->
+  <div id="topProgressBar"></div>
+
+  <!-- Ultra-Modern Glassmorphism Loading Screen -->
   <div id="loadingOverlay">
-    <div class="spinner"></div>
-    <p style="margin-top: 1rem; font-weight: 700; color: var(--primary);">Loading System Data...</p>
+    <div class="loading-card">
+      <div class="spinner-ring-wrapper">
+        <div class="spinner-ring-outer"></div>
+        <div class="spinner-ring-inner">
+          <i class="fas fa-fire-flame-curved"></i>
+        </div>
+      </div>
+      <h4 class="loading-title" id="loadingOverlayTitle">Loading System Data...</h4>
+      <p class="loading-subtitle">Please wait a moment</p>
+    </div>
   </div>
 
   <div class="app-container">
@@ -1894,7 +1905,34 @@
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function openAboutModal() { openModal('aboutModal'); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    function showLoading(show, message = 'Loading System Data...') {
+      const overlay = document.getElementById('loadingOverlay');
+      const topBar = document.getElementById('topProgressBar');
+      const title = document.getElementById('loadingOverlayTitle');
+      
+      clearTimeout(window._loadingTimeout);
+
+      if (show) {
+        if (title) title.innerText = message;
+        if (topBar) topBar.style.display = 'block';
+        if (overlay) {
+          overlay.style.display = 'flex';
+          requestAnimationFrame(() => overlay.classList.add('active'));
+        }
+        // Safety auto-dismiss: never block UI for more than 7 seconds
+        window._loadingTimeout = setTimeout(() => {
+          showLoading(false);
+        }, 7000);
+      } else {
+        if (topBar) topBar.style.display = 'none';
+        if (overlay) {
+          overlay.classList.remove('active');
+          setTimeout(() => {
+            if (!overlay.classList.contains('active')) overlay.style.display = 'none';
+          }, 220);
+        }
+      }
+    }
 
     // Sidebar helpers
     function openSidebar() {
