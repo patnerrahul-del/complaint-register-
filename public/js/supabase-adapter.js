@@ -154,6 +154,88 @@ async function handleSupabaseAction(urlStr, options) {
   const currentUser = JSON.parse(localStorage.getItem('gas_user') || 'null');
 
   switch (action) {
+    case 'forgot_password': {
+      if (!db) return { success: false, message: 'Database offline, please retry' };
+      const loginInput = (postData.login_id || postData.username || '').trim();
+      const mobileInput = (postData.mobile || '').replace(/\D/g, '').trim();
+      const newPassword = (postData.new_password || '').trim();
+
+      if (!loginInput) {
+        return { success: false, message: 'Please enter Login ID or Username' };
+      }
+      if (!mobileInput) {
+        return { success: false, message: 'Please enter registered 10-digit Mobile Number' };
+      }
+
+      // Check if resetting Admin (id=1 or username='admin')
+      if (loginInput.toLowerCase() === 'admin') {
+        const validAdminMobiles = ['9771459303', '7564948617', '8235921126'];
+        try {
+          const { data: dbAdmin } = await db.from('gas_users').select('*').eq('id', 1).single();
+          if (dbAdmin && dbAdmin.mobile) {
+            validAdminMobiles.push(dbAdmin.mobile.replace(/\D/g, ''));
+          }
+        } catch(e) {}
+
+        if (!validAdminMobiles.includes(mobileInput)) {
+          return {
+            success: false,
+            message: 'Admin verification failed: Registered agency mobile number match nahi hua.'
+          };
+        }
+
+        if (!newPassword) {
+          return { success: true, verified: true, name: 'Administrator', role: 'Admin', user_id: 1 };
+        }
+
+        const pwdHash = await sha256(newPassword);
+        await db.from('gas_users').update({ password: pwdHash, mobile: mobileInput }).eq('id', 1);
+        return { success: true, message: 'Admin password successfully reset ho gaya!' };
+      }
+
+      // For Employees / Vendors / Delivery Boys
+      const { data: matchedUsers, error } = await db
+        .from('gas_users')
+        .select('id, username, name, role, mobile')
+        .or(`username.eq.${loginInput},mobile.eq.${loginInput}`);
+
+      if (error || !matchedUsers || matchedUsers.length === 0) {
+        return {
+          success: false,
+          message: 'Koi account nahi mila. Kripya apna registered Mobile Number ya Employee ID check karein.'
+        };
+      }
+
+      const userFound = matchedUsers[0];
+      const registeredMob = (userFound.mobile || userFound.username || '').replace(/\D/g, '');
+
+      if (registeredMob !== mobileInput) {
+        return {
+          success: false,
+          message: 'Registered Mobile Number match nahi hua! Kripya vahi 10-digit mobile dalein jo agency me registered hai.'
+        };
+      }
+
+      if (!newPassword) {
+        return {
+          success: true,
+          verified: true,
+          name: userFound.name || userFound.username,
+          role: userFound.role || 'Vendor',
+          user_id: userFound.id
+        };
+      }
+
+      const pwdHash = await sha256(newPassword);
+      const { error: updErr } = await db.from('gas_users').update({ password: pwdHash }).eq('id', userFound.id);
+      if (updErr) throw updErr;
+
+      return {
+        success: true,
+        message: 'Password successfully reset ho gaya!'
+      };
+    }
+
     case 'login': {
       const username = (postData.username || '').trim();
       const password = (postData.password || '').trim();

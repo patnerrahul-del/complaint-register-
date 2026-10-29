@@ -41,6 +41,158 @@
       }
     }
 
+    function openForgotPasswordModal() {
+      if (typeof Swal === 'undefined') {
+        alert('Please wait, system is loading...');
+        return;
+      }
+      Swal.fire({
+        title: '🔑 Forgot Password?',
+        html: `
+          <div style="text-align: left; font-size: 0.85rem; color: #475569; margin-bottom: 14px;">
+            Apna account verify karne ke liye apna <b>Login ID (Username)</b> aur <b>Registered Mobile Number</b> enter karein:
+          </div>
+          <div style="text-align: left; margin-bottom: 12px;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Login ID / Username *</label>
+            <input type="text" id="fp_login_id" class="swal2-input" placeholder="e.g. 8235921126 ya admin" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+          </div>
+          <div style="text-align: left; margin-bottom: 14px;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Registered 10-Digit Mobile No. *</label>
+            <input type="tel" id="fp_mobile" maxlength="10" class="swal2-input" placeholder="e.g. 8235921126" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+          </div>
+          <div style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fab fa-whatsapp" style="color: #22c55e; font-size: 1rem;"></i> Help chahiye?</span>
+            <a href="https://wa.me/917564948617?text=Namaste%20Admin,%20mujhe%20Shiv%20Shakti%20HP%20Gas%20portal%20ka%20password%20reset%20karne%20me%20madad%20chahiye." target="_blank" style="color: #16a34a; font-weight: 700; text-decoration: none;">Admin se baat karein &rarr;</a>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Verify & Continue',
+        confirmButtonColor: '#2563eb',
+        cancelButtonText: 'Cancel',
+        focusConfirm: false,
+        preConfirm: () => {
+          const loginId = (document.getElementById('fp_login_id')?.value || '').trim();
+          const mobile = (document.getElementById('fp_mobile')?.value || '').replace(/\D/g, '').trim();
+          if (!loginId) {
+            Swal.showValidationMessage('Please enter Login ID or Username');
+            return false;
+          }
+          if (!mobile || mobile.length < 10) {
+            Swal.showValidationMessage('Please enter a valid 10-digit registered mobile number');
+            return false;
+          }
+          return { loginId, mobile };
+        }
+      }).then(async (res) => {
+        if (!res.isConfirmed || !res.value) return;
+        const { loginId, mobile } = res.value;
+
+        if (typeof showLoading === 'function') showLoading(true);
+        try {
+          const fd = new FormData();
+          fd.append('action', 'forgot_password');
+          fd.append('login_id', loginId);
+          fd.append('mobile', mobile);
+
+          const r = await fetch('?', { method: 'POST', body: fd });
+          const data = await r.json();
+          if (typeof showLoading === 'function') showLoading(false);
+
+          if (!data.success) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Verification Failed',
+              text: data.message || 'Details match nahi hui.',
+              confirmButtonColor: '#ef4444'
+            });
+            return;
+          }
+
+          // Account verified! Prompt for new password
+          promptNewPassword(loginId, mobile, data.name || loginId);
+        } catch (err) {
+          if (typeof showLoading === 'function') showLoading(false);
+          Swal.fire({ icon: 'error', title: 'Network Error', text: err.message || 'Unable to connect' });
+        }
+      });
+    }
+
+    function promptNewPassword(loginId, mobile, userName) {
+      Swal.fire({
+        title: '🔐 Set New Password',
+        html: `
+          <div style="text-align: left; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;">
+            <div style="font-size: 0.82rem; color: #065f46;">Account Verified: <b>${escapeHtml(userName)}</b></div>
+            <div style="font-size: 0.75rem; color: #047857; margin-top: 2px;">Registered Mobile: <b>${escapeHtml(mobile)}</b></div>
+          </div>
+          <div style="text-align: left; margin-bottom: 12px;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Naya Password (New Password) *</label>
+            <input type="password" id="fp_new_pw" class="swal2-input" placeholder="Minimum 4 characters" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+          </div>
+          <div style="text-align: left; margin-bottom: 10px;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Confirm Naya Password *</label>
+            <input type="password" id="fp_confirm_pw" class="swal2-input" placeholder="Re-enter new password" style="width: 100%; height: 42px; margin: 0; font-size: 0.9rem;">
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save New Password',
+        confirmButtonColor: '#10b981',
+        cancelButtonText: 'Cancel',
+        focusConfirm: false,
+        preConfirm: () => {
+          const p1 = (document.getElementById('fp_new_pw')?.value || '').trim();
+          const p2 = (document.getElementById('fp_confirm_pw')?.value || '').trim();
+          if (!p1) {
+            Swal.showValidationMessage('Please enter new password');
+            return false;
+          }
+          if (p1.length < 4) {
+            Swal.showValidationMessage('Password must be at least 4 characters');
+            return false;
+          }
+          if (p1 !== p2) {
+            Swal.showValidationMessage('Passwords do not match');
+            return false;
+          }
+          return p1;
+        }
+      }).then(async (res) => {
+        if (!res.isConfirmed || !res.value) return;
+        const newPassword = res.value;
+
+        if (typeof showLoading === 'function') showLoading(true);
+        try {
+          const fd = new FormData();
+          fd.append('action', 'forgot_password');
+          fd.append('login_id', loginId);
+          fd.append('mobile', mobile);
+          fd.append('new_password', newPassword);
+
+          const r = await fetch('?', { method: 'POST', body: fd });
+          const data = await r.json();
+          if (typeof showLoading === 'function') showLoading(false);
+
+          if (data.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Password Updated! 🎉',
+              text: 'Aapka naya password safaltapoorvak set ho gaya hai. Ab aap Sign In kar sakte hain.',
+              confirmButtonColor: '#10b981'
+            });
+            const uInput = document.getElementById('loginUsername');
+            const pInput = document.getElementById('loginPassword');
+            if (uInput) uInput.value = loginId;
+            if (pInput) pInput.value = newPassword;
+          } else {
+            Swal.fire({ icon: 'error', title: 'Reset Failed', text: data.message || 'Failed to update password' });
+          }
+        } catch (err) {
+          if (typeof showLoading === 'function') showLoading(false);
+          Swal.fire({ icon: 'error', title: 'Network Error', text: err.message || 'Unable to connect' });
+        }
+      });
+    }
+
     function quickFillLogin(u, p, roleName) {
       const uInput = document.getElementById('loginUsername');
       const pInput = document.getElementById('loginPassword');
@@ -141,7 +293,7 @@
             <label for="loginUsername">Username / Employee ID</label>
             <div class="input-with-icon">
               <i class="fas fa-user-shield"></i>
-              <input type="text" id="loginUsername" required placeholder="Enter username" value="admin" autocomplete="username">
+              <input type="text" id="loginUsername" required placeholder="Enter username or mobile" autocomplete="username">
             </div>
           </div>
 
@@ -154,15 +306,18 @@
             </div>
             <div class="input-with-icon">
               <i class="fas fa-key"></i>
-              <input type="password" id="loginPassword" required placeholder="Enter password" value="password" autocomplete="current-password">
+              <input type="password" id="loginPassword" required placeholder="Enter password" autocomplete="current-password">
             </div>
           </div>
 
-          <div class="form-options-row">
+          <div class="form-options-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <label class="remember-checkbox">
               <input type="checkbox" id="rememberMe" checked>
               <span>Remember login session</span>
             </label>
+            <a href="javascript:void(0)" onclick="openForgotPasswordModal()" style="font-size: 0.8rem; font-weight: 700; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+              <i class="fas fa-question-circle"></i> Forgot Password?
+            </a>
           </div>
 
           <button type="submit" id="loginSubmitBtn" class="btn-premium-login">
@@ -173,23 +328,12 @@
           </button>
         </form>
 
-        <!-- One-Click Quick Logins -->
-        <div style="margin-top: 18px; padding: 12px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px;">
-          <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-            <span><i class="fas fa-bolt" style="color: #f59e0b;"></i> One-Tap Quick Login</span>
-            <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 600;">Tap to fill</span>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button type="button" onclick="quickFillLogin('admin', 'password', 'Admin')" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; font-size: 0.8rem; font-weight: 700; color: #1d4ed8; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-              <i class="fas fa-user-shield"></i> <span>Admin Login</span>
-            </button>
-            <button type="button" onclick="quickFillLogin('8235921126', '8235921126', 'Vendor (Gena Lal)')" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; font-size: 0.8rem; font-weight: 700; color: #15803d; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
-              <i class="fas fa-truck"></i> <span>Vendor Login</span>
+        <div class="login-card-footer" style="margin-top: 20px; text-align: center;">
+          <div style="margin-bottom: 12px;">
+            <button type="button" onclick="openForgotPasswordModal()" style="background: none; border: none; color: #64748b; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+              <i class="fas fa-key" style="color: #f59e0b;"></i> Password bhul gaye? <strong>Reset karein</strong>
             </button>
           </div>
-        </div>
-
-        <div class="login-card-footer" style="margin-top: 16px;">
           <div class="security-guarantee">
             <i class="fas fa-lock" style="color:#10b981;"></i> 256-Bit SSL Encrypted Cloud Session
           </div>
